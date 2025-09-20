@@ -1,0 +1,24 @@
+package com.crm.user.entity;
+
+public enum Permission {
+    VIEW_CLIENTS,
+    CREATE_CLIENTS,
+    UPDATE_CLIENTS,
+    DELETE_CLIENTS,
+
+    VIEW_LEADS,
+    CREATE_LEADS,
+    CONVERT_LEAD_TO_CLIENT,
+
+    VIEW_USERS,
+    CREATE_USERS,
+    ASSIGN_ROLES,
+    MANAGE_PERMISSIONS,
+
+    UPLOAD_DOCUMENTS,
+    VIEW_DOCUMENTS,
+
+    UPLOAD_PAYMENTS,
+    VIEW_PAYMENTS
+}
+
