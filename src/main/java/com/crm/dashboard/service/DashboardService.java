@@ -6,7 +6,6 @@ import com.crm.client.dto.PaymentStatus;
 import com.crm.lead.entity.Lead;
 import com.crm.lead.reposiroty.LeadContactHistoryRepository;
 import com.crm.lead.reposiroty.LeadRepository;
-import com.crm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

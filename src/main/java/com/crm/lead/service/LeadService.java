@@ -14,6 +14,7 @@ import com.crm.lead.reposiroty.LeadStatusRepository;
 import com.crm.reception.entity.VisitSchedule;
 import com.crm.reception.entity.VisitStatus;
 import com.crm.reception.repository.VisitScheduleRepository;
+import com.crm.user.entity.User;
 import com.crm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -37,29 +38,48 @@ public class LeadService {
 
     // ✅ Lead yaratish
     public LeadResponse createLead(LeadRequest request) {
-        LeadStatus status = statusRepository.findById(request.getStatusId())
-                .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+        LeadStatus status = null;
+        if (request.getStatusId() != null) {
+            status = statusRepository.findById(request.getStatusId())
+                    .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+        }
+
+        User assignedTo = null;
+        if (request.getAssignedToId() != null) {
+            assignedTo = userRepository.findById(request.getAssignedToId())
+                    .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+        }
 
         Lead lead = Lead.builder()
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .region(request.getRegion())
                 .targetCountry(request.getTargetCountry())
-                .status(status)
+                .status(status)           // null bo‘lishi mumkin
+                .assignedTo(assignedTo)   // null bo‘lishi mumkin
                 .lastContactDate(request.getLastContactDate())
                 .convertedToClient(false)
+                .deleted(false)
+                .archived(false)
+                .meetingDateTime(request.getMeetingDateTime())   // 🆕
+                .meetingStatus(request.getMeetingStatus())       // 🆕
+
                 .build();
 
         leadRepository.save(lead);
         return mapToResponse(lead);
     }
 
+
+
     // ✅ Barcha leadlarni olish
+    // ✅ Faqat faol (deleted = false) leadlarni olish
     public List<LeadResponse> getAllLeads() {
-        return leadRepository.findAll().stream()
+        return leadRepository.findAllByDeletedFalse().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
 
     // ✅ Bitta leadni olish
     public LeadResponse getLeadById(Long id) {
@@ -73,15 +93,42 @@ public class LeadService {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
 
-        LeadStatus status = statusRepository.findById(request.getStatusId())
-                .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+        // 🔹 Faqat kelgan fieldlarni yangilash
+        if (request.getFullName() != null) {
+            lead.setFullName(request.getFullName());
+        }
+        if (request.getPhone() != null) {
+            lead.setPhone(request.getPhone());
+        }
+        if (request.getRegion() != null) {
+            lead.setRegion(request.getRegion());
+        }
+        if (request.getTargetCountry() != null) {
+            lead.setTargetCountry(request.getTargetCountry());
+        }
+        if (request.getLastContactDate() != null) {
+            lead.setLastContactDate(request.getLastContactDate());
+        }
+        if (request.getMeetingDateTime() != null) {
+            lead.setMeetingDateTime(request.getMeetingDateTime());
+        }
+        if (request.getMeetingStatus() != null) {
+            lead.setMeetingStatus(request.getMeetingStatus());
+        }
 
-        lead.setFullName(request.getFullName());
-        lead.setPhone(request.getPhone());
-        lead.setRegion(request.getRegion());
-        lead.setTargetCountry(request.getTargetCountry());
-        lead.setStatus(status);
-        lead.setLastContactDate(request.getLastContactDate());
+        // 🔹 status ixtiyoriy
+        if (request.getStatusId() != null) {
+            LeadStatus status = statusRepository.findById(request.getStatusId())
+                    .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+            lead.setStatus(status);
+        }
+
+        // 🔹 assignedTo ixtiyoriy
+        if (request.getAssignedToId() != null) {
+            User user = userRepository.findById(request.getAssignedToId())
+                    .orElseThrow(() -> new CustomException("Assigned user not found", HttpStatus.NOT_FOUND));
+            lead.setAssignedTo(user);
+        }
 
         leadRepository.save(lead);
         return mapToResponse(lead);
@@ -94,38 +141,53 @@ public class LeadService {
         leadRepository.delete(lead);
     }
 
-       // ✅ Lead → Client konvertatsiya qilish
-    public ClientResponse convertToClient(Long id) {
-        Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
 
-        if (lead.isConvertedToClient()) {
-            throw new CustomException("Lead already converted to client", HttpStatus.BAD_REQUEST);
-        }
+    // ✅ Lead → Client konvertatsiya qilish
+       // LeadService.java
+       public ClientResponse convertToClient(Long id) {
+           Lead lead = leadRepository.findById(id)
+                   .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
 
-        // Lead ma’lumotidan ClientRequest yasaymiz
-        ClientRequest clientRequest = new ClientRequest();
-        clientRequest.setFullName(lead.getFullName());
-        clientRequest.setPhone1(lead.getPhone());
-        clientRequest.setPhone2(null);
-        clientRequest.setRegion(lead.getRegion());
-        clientRequest.setTargetCountry(lead.getTargetCountry());
-        clientRequest.setPaymentStatus(PaymentStatus.PENDING);
+           if (lead.isConvertedToClient()) {
+               throw new CustomException("Lead already converted to client", HttpStatus.BAD_REQUEST);
+           }
 
-        // ClientService orqali Client yaratamiz
-        ClientResponse clientResponse = clientService.createClient(clientRequest);
+           // Lead ma’lumotidan ClientRequest yasaymiz
+           ClientRequest clientRequest = new ClientRequest();
+           clientRequest.setFullName(lead.getFullName());
+           clientRequest.setPhone1(lead.getPhone());
+           clientRequest.setPhone2(null); // boshlang‘ich null
+           clientRequest.setRegion(lead.getRegion());
+           clientRequest.setTargetCountry(lead.getTargetCountry());
 
-        // Lead flag update
-        lead.setConvertedToClient(true);
-        leadRepository.save(lead);
+           // Payment ma’lumotlari keyin Reception / Finance qo‘shadi
+           clientRequest.setInitialPayment(null);
+           clientRequest.setInitialPaymentDate(null);
+           clientRequest.setTotalPayment(null);
+           clientRequest.setTotalPaymentDate(null);
 
-        return clientResponse;
-    }
+           clientRequest.setPaymentStatus(PaymentStatus.PENDING);
+           clientRequest.setLeadId(lead.getId());
+
+           // Client yaratish
+           ClientResponse clientResponse = clientService.createClient(clientRequest);
+
+           // Lead flag update
+           lead.setConvertedToClient(true);
+           leadRepository.save(lead);
+
+           return clientResponse;
+       }
 
     public List<LeadResponse> searchLeads(String query) {
         List<Lead> leads = leadRepository.searchLeads(query);
-        return leads.stream().map(this::mapToResponse).toList();
+        return leads.stream()
+                .map(this::mapToResponse)
+                .toList();
     }
+
+
+    // ✅ Soft delete
     public void softDeleteLead(Long id) {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
@@ -133,33 +195,19 @@ public class LeadService {
         leadRepository.save(lead);
     }
 
-    public void archiveLead(Long id) {
-        Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
-        lead.setArchived(true);
-        leadRepository.save(lead);
-    }
 
+    // ✅ Restore
     public void restoreLead(Long id) {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Lead not found", HttpStatus.NOT_FOUND));
         lead.setDeleted(false);
-        lead.setArchived(false);
         leadRepository.save(lead);
     }
 
-    public void permanentDeleteLead(Long id) {
-        if (!leadRepository.existsById(id)) {
-            throw new CustomException("Lead not found", HttpStatus.NOT_FOUND);
-        }
-        leadRepository.deleteById(id);
-    }
 
-    public List<LeadResponse> getArchivedLeads() {
-        return leadRepository.findAllArchived().stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
+
+
+
 
     public List<LeadResponse> getDeletedLeads() {
         return leadRepository.findAllDeleted().stream()
@@ -179,9 +227,12 @@ public class LeadService {
                 .region(lead.getRegion())
                 .targetCountry(lead.getTargetCountry())
                 .lastContactDate(lead.getLastContactDate())
-                .status(lead.getStatus() != null ? lead.getStatus().getName() : null)
+                .statusId(lead.getStatus() != null ? lead.getStatus().getId() : null)  // ✅
+                .statusName(lead.getStatus() != null ? lead.getStatus().getName() : null) // ✅
                 .convertedToClient(lead.isConvertedToClient())
                 .nextVisitDate(nextVisit) // 🔔 qo‘shildi
+                .meetingDateTime(lead.getMeetingDateTime())    // 🆕
+                .meetingStatus(lead.getMeetingStatus())        // 🆕
                 .build();
     }
 }

@@ -26,14 +26,14 @@ public class LeadImportExportController {
 
     // ✅ 1. Import qilish (Excel yuklash)
     @PostMapping("/import")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('IMPORT_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<Lead>>> importLeads(@RequestParam("file") MultipartFile file) throws IOException {
         return ResponseEntity.ok(ApiResponse.ok("Leads imported", importExportService.importLeads(file)));
     }
 
     // ✅ 2. Export qilish (Excel)
     @GetMapping("/export")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('EXPORT_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<InputStreamResource> exportLeads(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,

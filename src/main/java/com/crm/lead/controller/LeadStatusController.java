@@ -19,21 +19,26 @@ public class LeadStatusController {
 
     // ✅ 1. Yangi status yaratish
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
-    public ResponseEntity<ApiResponse<LeadStatus>> createStatus(@RequestParam String name) {
-        return ResponseEntity.ok(ApiResponse.ok("Status created", service.createStatus(name)));
+    @PreAuthorize("hasAuthority('CREATE_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<LeadStatus>> createStatus(
+            @RequestParam String name,
+            @RequestParam(required = false) String color
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.ok("Status created", service.createStatus(name, color))
+        );
     }
 
     // ✅ 2. Barcha statuslarni olish
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','SALES_MANAGER')")
+    @PreAuthorize("hasAuthority('VIEW_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<LeadStatus>>> getAllStatuses() {
         return ResponseEntity.ok(ApiResponse.ok("All statuses", service.getAllStatuses()));
     }
 
     // ✅ 3. Statusni o‘chirish
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAuthority('DELETE_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteStatus(@PathVariable Long id) {
         service.deleteStatus(id);
         return ResponseEntity.ok(ApiResponse.ok("Status deleted", null));

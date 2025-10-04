@@ -22,13 +22,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-
     public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomException("Invalid credentials", HttpStatus.UNAUTHORIZED);
+        }
+
+        // ✅ Bloklangan foydalanuvchi login qila olmaydi
+        if (!user.isActive()) {
+            throw new CustomException("User is blocked", HttpStatus.FORBIDDEN);
         }
 
         String token = jwtProvider.generateToken(
@@ -40,6 +44,7 @@ public class AuthService {
         return new TokenResponse(token, user.getRole().name(), user.getPermissions());
     }
 
+
     public User initSuperAdmin(String email, String password) {
         if (userRepository.existsByEmail(email)) {
             throw new CustomException("Super admin already exists", HttpStatus.BAD_REQUEST);
@@ -50,10 +55,13 @@ public class AuthService {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(Role.SUPER_ADMIN)
-                .permissions(Set.of(Permission.MANAGE_PERMISSIONS, Permission.CREATE_USERS, Permission.ASSIGN_ROLES))
+                .permissions(Set.of(Permission.values())) // 🔑 barcha permissions
                 .active(true)
+                .deleted(false)
+                .archived(false)
                 .build();
 
         return userRepository.save(user);
     }
+
 }

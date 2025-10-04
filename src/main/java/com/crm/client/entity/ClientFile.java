@@ -1,6 +1,5 @@
 package com.crm.client.entity;
 
-import com.crm.client.entity.Client;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +18,9 @@ public class ClientFile {
     private String fileName;
     private String fileType;
     private String filePath;
+
+    @Enumerated(EnumType.STRING)
+    private DocumentType documentType; // ✅ qo‘shildi
 
     @ManyToOne
     @JoinColumn(name = "client_id")

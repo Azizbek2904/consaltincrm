@@ -17,4 +17,6 @@ public class UserResponse {
     private Set<Permission> permissions;
     private boolean active;
     private String department;
+    private boolean archived;
+    private boolean deleted;
 }

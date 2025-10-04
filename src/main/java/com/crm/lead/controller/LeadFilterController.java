@@ -24,9 +24,9 @@ public class LeadFilterController {
 
     private final LeadFilterService filterService;
 
-    // ✅ Filter qilish
+    // ✅ 1. Filter qilish
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<Lead>>> filterLeads(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
@@ -34,12 +34,13 @@ public class LeadFilterController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
-        return ResponseEntity.ok(ApiResponse.ok("Filtered leads", filterService.filterLeads(statusId, region, targetCountry, start, end)));
+        return ResponseEntity.ok(ApiResponse.ok("Filtered leads",
+                filterService.filterLeads(statusId, region, targetCountry, start, end)));
     }
 
-    // ✅ Filterlanganlarni o‘chirish
+    // ✅ 2. Filterlanganlarni o‘chirish
     @DeleteMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAuthority('DELETE_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteFilteredLeads(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
@@ -51,15 +52,15 @@ public class LeadFilterController {
         return ResponseEntity.ok(ApiResponse.ok("Filtered leads deleted", null));
     }
 
-    // ✅ Excel export
+    // ✅ 3. Excel export
     @GetMapping("/export/excel")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<InputStreamResource> exportLeadsExcel(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,
-            @RequestParam(required = false) LocalDate start,
-            @RequestParam(required = false) LocalDate end
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) throws IOException {
         ByteArrayInputStream in = filterService.exportLeadsToExcel(statusId, region, targetCountry, start, end);
         return ResponseEntity.ok()
@@ -68,15 +69,15 @@ public class LeadFilterController {
                 .body(new InputStreamResource(in));
     }
 
-    // ✅ CSV export
+    // ✅ 4. CSV export
     @GetMapping("/export/csv")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<InputStreamResource> exportLeadsCsv(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,
-            @RequestParam(required = false) LocalDate start,
-            @RequestParam(required = false) LocalDate end
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) throws IOException {
         ByteArrayInputStream in = filterService.exportLeadsToCsv(statusId, region, targetCountry, start, end);
         return ResponseEntity.ok()

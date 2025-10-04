@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "leads")
@@ -23,17 +24,22 @@ public class Lead {
     private String region;         // viloyat
     private String targetCountry;  // qaysi davlatga ketadi
     private LocalDate lastContactDate;
-
     @ManyToOne
     @JoinColumn(name = "status_id")
     private LeadStatus status; // dynamic status
-
     // Lead kimga assign qilingan (Sales Manager)
     @ManyToOne
     private User assignedTo;
-
     private boolean convertedToClient = false;
     private boolean deleted = false;
+
+    // 🔹 BU YO‘Q EDI – qo‘shamiz
+    @Column(nullable = false)
     private boolean archived = false;
+    private LocalDateTime meetingDateTime;
+    @Enumerated(EnumType.STRING)
+    private MeetingStatus meetingStatus;
+
+
 
 }

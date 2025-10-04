@@ -1,4 +1,5 @@
 package com.crm.lead.service;
+
 import com.crm.lead.entity.Lead;
 import com.crm.lead.reposiroty.LeadRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,7 @@ public class LeadFilterService {
 
     // ✅ Filter qilish
     public List<Lead> filterLeads(Long statusId, String region, String targetCountry, LocalDate start, LocalDate end) {
-        List<Lead> leads = leadRepository.findAll();
-
-        return leads.stream()
+        return leadRepository.findAll().stream()
                 .filter(l -> statusId == null || (l.getStatus() != null && l.getStatus().getId().equals(statusId)))
                 .filter(l -> region == null || region.equalsIgnoreCase(l.getRegion()))
                 .filter(l -> targetCountry == null || targetCountry.equalsIgnoreCase(l.getTargetCountry()))
@@ -32,7 +31,7 @@ public class LeadFilterService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ Batch delete (filterlanganlarni o‘chirish)
+    // ✅ Batch delete
     public void deleteFilteredLeads(Long statusId, String region, String targetCountry, LocalDate start, LocalDate end) {
         List<Lead> filtered = filterLeads(statusId, region, targetCountry, start, end);
         leadRepository.deleteAll(filtered);
@@ -87,6 +86,4 @@ public class LeadFilterService {
         }
         return new ByteArrayInputStream(out.toByteArray());
     }
-
-
 }

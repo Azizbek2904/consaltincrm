@@ -1,23 +1,22 @@
 package com.crm.leadassign.service;
 
 import com.crm.common.exception.CustomException;
+import com.crm.lead.dto.LeadResponse;
 import com.crm.lead.entity.Lead;
 import com.crm.lead.reposiroty.LeadRepository;
-import com.crm.leadassign.dto.LeadAssignHistoryResponse;
-import com.crm.leadassign.dto.LeadAssignRequest;
-import com.crm.leadassign.dto.LeadAssignResponse;
-import com.crm.leadassign.dto.LeadAssignUpdateRequest;
+import com.crm.leadassign.dto.*;
 import com.crm.leadassign.entity.LeadAssignment;
 import com.crm.leadassign.repository.LeadAssignmentRepository;
+import com.crm.user.entity.Role;
 import com.crm.user.entity.User;
 import com.crm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +31,10 @@ public class LeadAssignService {
         User salesManager = userRepository.findById(request.getSalesManagerId())
                 .orElseThrow(() -> new CustomException("Sales Manager not found", HttpStatus.NOT_FOUND));
 
+        if (salesManager.getRole() != Role.SALES_MANAGER) {
+            throw new CustomException("Leads can only be assigned to SALES_MANAGER role", HttpStatus.BAD_REQUEST);
+        }
+
         User assignedBy = userRepository.findById(request.getAssignedById())
                 .orElseThrow(() -> new CustomException("AssignedBy user not found", HttpStatus.NOT_FOUND));
 
@@ -40,8 +43,13 @@ public class LeadAssignService {
             throw new CustomException("No leads found to assign", HttpStatus.BAD_REQUEST);
         }
 
-        // Leadlarni sales manager’ga biriktiramiz
-        leads.forEach(l -> l.setAssignedTo(salesManager));
+        // ✅ Har bir leadni tekshirish
+        for (Lead l : leads) {
+            if (l.getAssignedTo() != null && !l.getAssignedTo().equals(salesManager)) {
+                throw new CustomException("Lead " + l.getId() + " already assigned", HttpStatus.BAD_REQUEST);
+            }
+            l.setAssignedTo(salesManager);
+        }
         leadRepository.saveAll(leads);
 
         LeadAssignment assignment = LeadAssignment.builder()
@@ -56,28 +64,26 @@ public class LeadAssignService {
         return mapToResponse(assignment);
     }
 
-    // ✅ Tarixni olish
+    // ✅ Tarix
     public List<LeadAssignHistoryResponse> getAssignmentHistory() {
         return assignmentRepository.findAll().stream()
                 .map(this::mapToHistoryResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // ✅ Tarixni qidirish (Sales Manager ismi bo‘yicha)
     public List<LeadAssignHistoryResponse> searchBySalesManager(String name) {
         return assignmentRepository.findBySalesManager_FullNameContainingIgnoreCase(name).stream()
                 .map(this::mapToHistoryResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // ✅ Tarixni qidirish (sana oralig‘i bo‘yicha)
     public List<LeadAssignHistoryResponse> searchByDateRange(LocalDateTime start, LocalDateTime end) {
         return assignmentRepository.findByAssignedAtBetween(start, end).stream()
                 .map(this::mapToHistoryResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // ✅ Update qilish
+    // ✅ Update
     public LeadAssignResponse updateAssignment(Long id, LeadAssignUpdateRequest request) {
         LeadAssignment assignment = assignmentRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Assignment not found", HttpStatus.NOT_FOUND));
@@ -85,12 +91,15 @@ public class LeadAssignService {
         User newSalesManager = userRepository.findById(request.getSalesManagerId())
                 .orElseThrow(() -> new CustomException("Sales Manager not found", HttpStatus.NOT_FOUND));
 
+        if (newSalesManager.getRole() != Role.SALES_MANAGER) {
+            throw new CustomException("Only SALES_MANAGER role can receive leads", HttpStatus.BAD_REQUEST);
+        }
+
         List<Lead> newLeads = leadRepository.findAllById(request.getLeadIds());
         if (newLeads.isEmpty()) {
             throw new CustomException("No leads found", HttpStatus.BAD_REQUEST);
         }
 
-        // eski leadlardan aloqani uzib, yangilarni biriktiramiz
         newLeads.forEach(l -> l.setAssignedTo(newSalesManager));
         leadRepository.saveAll(newLeads);
 
@@ -103,7 +112,7 @@ public class LeadAssignService {
         return mapToResponse(assignment);
     }
 
-    // ✅ O‘chirish
+    // ✅ Delete
     public void deleteAssignment(Long id) {
         if (!assignmentRepository.existsById(id)) {
             throw new CustomException("Assignment not found", HttpStatus.NOT_FOUND);
@@ -111,12 +120,33 @@ public class LeadAssignService {
         assignmentRepository.deleteById(id);
     }
 
+    // ✅ Bo‘sh leadlar
+    public List<LeadResponse> getUnassignedLeads() {
+        return leadRepository.findAll().stream()
+                .filter(l -> l.getAssignedTo() == null)
+                .map(this::mapLeadToResponse)
+                .toList();
+    }
+
+    // ✅ Joriy user faqat o‘z leadlarini ko‘radi
+    public List<LeadResponse> getLeadsForCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmailAndActiveTrue(email)
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+
+        return leadRepository.findAll().stream()
+                .filter(l -> l.getAssignedTo() != null && l.getAssignedTo().equals(currentUser))
+                .map(this::mapLeadToResponse)
+                .toList();
+    }
+
+    // 🔹 Mapping helpers
     private LeadAssignResponse mapToResponse(LeadAssignment assignment) {
         return LeadAssignResponse.builder()
                 .id(assignment.getId())
                 .salesManager(assignment.getSalesManager().getFullName())
                 .assignedBy(assignment.getAssignedBy().getFullName())
-                .leadIds(assignment.getLeads().stream().map(Lead::getId).collect(Collectors.toList()))
+                .leadIds(assignment.getLeads().stream().map(Lead::getId).toList())
                 .assignedAt(assignment.getAssignedAt())
                 .build();
     }
@@ -126,8 +156,19 @@ public class LeadAssignService {
                 .assignmentId(assignment.getId())
                 .salesManager(assignment.getSalesManager().getFullName())
                 .assignedBy(assignment.getAssignedBy().getFullName())
-                .leads(assignment.getLeads().stream().map(Lead::getFullName).collect(Collectors.toList()))
+                .leads(assignment.getLeads().stream().map(Lead::getFullName).toList())
                 .assignedAt(assignment.getAssignedAt())
+                .build();
+    }
+
+    private LeadResponse mapLeadToResponse(Lead lead) {
+        return LeadResponse.builder()
+                .id(lead.getId())
+                .fullName(lead.getFullName())
+                .phone(lead.getPhone())
+                .region(lead.getRegion())
+                .targetCountry(lead.getTargetCountry())
+                .assignedTo(lead.getAssignedTo() != null ? lead.getAssignedTo().getFullName() : null)
                 .build();
     }
 }

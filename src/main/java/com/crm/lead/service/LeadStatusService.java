@@ -16,15 +16,20 @@ public class LeadStatusService {
     private final LeadStatusRepository repository;
 
     // ✅ Yangi status yaratish
-    public LeadStatus createStatus(String name) {
+    // ✅ Yangi status yaratish
+    public LeadStatus createStatus(String name, String color) {
         if (repository.findByNameIgnoreCase(name).isPresent()) {
             throw new CustomException("Status already exists", HttpStatus.BAD_REQUEST);
         }
+
         LeadStatus status = LeadStatus.builder()
                 .name(name.toUpperCase())
+                .color(color != null ? color : "#d1d5db") // agar rang berilmasa default kulrang
                 .build();
+
         return repository.save(status);
     }
+
 
     // ✅ Barcha statuslarni olish
     public List<LeadStatus> getAllStatuses() {

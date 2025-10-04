@@ -29,12 +29,13 @@ public class JwtProvider {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
-                .claim("permissions", permissions)
+                .claim("permissions", permissions.stream().map(Enum::name).toList()) // 🔑 String list
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     public Claims getClaims(String token) {
         return Jwts.parser()

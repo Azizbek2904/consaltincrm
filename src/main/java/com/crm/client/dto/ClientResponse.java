@@ -1,6 +1,5 @@
 package com.crm.client.dto;
 
-import com.crm.client.dto.PaymentStatus;
 import com.crm.lead.dto.LeadContactHistoryResponse;
 import lombok.Builder;
 import lombok.Data;
@@ -26,11 +25,16 @@ public class ClientResponse {
     private LocalDate totalPaymentDate;
 
     private PaymentStatus paymentStatus;
+    private String convertedBy;
 
-    private List<String> files;
+    // ✅ qo‘shildi
+    private String contractNumber;
 
-    // ✅ Operator gaplashuvlari
+
+    private List<ClientFileResponse> files; // ✅ endi to‘g‘ri DTO
+    private List<ClientPaymentHistoryResponse> payments;
     private List<LeadContactHistoryResponse> contactHistory;
+    private List<String> comments;
 
     private LocalDateTime nextVisitDate;
 

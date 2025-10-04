@@ -3,29 +3,46 @@ package com.crm.client.repository;
 import com.crm.client.dto.PaymentStatus;
 import com.crm.client.entity.Client;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ClientRepository extends JpaRepository<Client, Long> {
+
+    // 🔎 Asosiy filter (hammasini optional qildim)
     @Query("SELECT c FROM Client c " +
-            "WHERE (:query IS NULL OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "   OR LOWER(c.phone1) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "   OR LOWER(c.phone2) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "   OR LOWER(c.region) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "   OR LOWER(c.targetCountry) LIKE LOWER(CONCAT('%', :query, '%'))) " +
-            "  AND (:status IS NULL OR c.paymentStatus = :status)")
-    List<Client> searchClients(@Param("query") String query,
-                               @Param("status") PaymentStatus status);
+            "WHERE (:status IS NULL OR c.paymentStatus = :status) " +
+            "AND (:targetCountry IS NULL OR LOWER(c.targetCountry) = LOWER(:targetCountry)) " +
+            "AND (:start IS NULL OR (c.initialPaymentDate IS NOT NULL AND c.initialPaymentDate >= :start)) " +
+            "AND (:end IS NULL OR (c.initialPaymentDate IS NOT NULL AND c.initialPaymentDate <= :end))")
+    List<Client> filterClients(
+            @Param("status") PaymentStatus status,
+            @Param("targetCountry") String targetCountry,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 
-    @Query("SELECT c FROM Client c WHERE c.deleted = false AND c.archived = false")
-    List<Client> findAllActive();
 
-    @Query("SELECT c FROM Client c WHERE c.archived = true")
-    List<Client> findAllArchived();
+    @Modifying
+    @Query("DELETE FROM Client c " +
+            "WHERE (:status IS NULL OR c.paymentStatus = :status) " +
+            "AND (:targetCountry IS NULL OR LOWER(c.targetCountry) = LOWER(:targetCountry)) " +
+            "AND (:start IS NULL OR (c.initialPaymentDate IS NOT NULL AND c.initialPaymentDate >= :start)) " +
+            "AND (:end IS NULL OR (c.initialPaymentDate IS NOT NULL AND c.initialPaymentDate <= :end))")
+    void deleteFilteredClients(
+            @Param("status") PaymentStatus status,
+            @Param("targetCountry") String targetCountry,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 
-    @Query("SELECT c FROM Client c WHERE c.deleted = true")
-    List<Client> findAllDeleted();
+
+    List<Client> findByArchivedFalseAndDeletedFalse(); // faqat aktivlar
+    List<Client> findByArchivedTrueAndDeletedFalse();  // faqat arxivdagilar
+    List<Client> findByDeletedTrue();                  // faqat o‘chirilganlar
+
 
 }
