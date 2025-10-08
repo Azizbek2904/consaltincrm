@@ -73,4 +73,16 @@ public class Client {
 
     @Column(nullable = false)
     private boolean deleted = false;
+
+    @Column(name = "converted_to_main_payment", nullable = false)
+   private boolean convertedToMainPayment = false;
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean mainPayment;
+
+    @ElementCollection
+    @CollectionTable(name = "payment_comments", joinColumns = @JoinColumn(name = "client_id"))
+    @Column(name = "comment")
+    private List<String> paymentComments = new ArrayList<>();
+
+
 }

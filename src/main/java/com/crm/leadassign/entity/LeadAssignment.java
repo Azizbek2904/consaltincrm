@@ -16,23 +16,20 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class LeadAssignment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Kimga assign qilingan (Sales Manager)
     @ManyToOne
-    @JoinColumn(name = "sales_manager_id")
     private User salesManager;
 
-    // Kim bog‘lagan (Admin / Super Admin / Manager)
     @ManyToOne
-    @JoinColumn(name = "assigned_by_id")
     private User assignedBy;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
-            name = "lead_assignment_leads",
+            name = "assignment_leads",
             joinColumns = @JoinColumn(name = "assignment_id"),
             inverseJoinColumns = @JoinColumn(name = "lead_id")
     )

@@ -34,6 +34,15 @@ public class LeadService {
     private final ClientService clientService;
 
     private final VisitScheduleRepository visitScheduleRepository;
+    // 🔹 Umumiy ro‘yxat (faqat unassigned)
+    public List<Lead> getUnassignedLeads() {
+        return leadRepository.findAllByAssignedFalseAndDeletedFalse();
+    }
+
+    // 🔹 Hodim faqat o‘ziga berilgan leadlarni ko‘radi
+    public List<Lead> getMyLeads(Long userId) {
+        return leadRepository.findAllByAssignedToId(userId);
+    }
 
 
     // ✅ Lead yaratish

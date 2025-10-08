@@ -1,5 +1,6 @@
 package com.crm.client.dto;
 
+import com.crm.client.entity.Client;
 import com.crm.lead.dto.LeadContactHistoryResponse;
 import lombok.Builder;
 import lombok.Data;
@@ -38,5 +39,6 @@ public class ClientResponse {
 
     private LocalDateTime nextVisitDate;
 
+    private List<String> paymentComments;
 
 }

@@ -1,6 +1,7 @@
 package com.crm.lead.reposiroty;
 
 import com.crm.lead.entity.Lead;
+import com.crm.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,15 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
        """)
     List<Lead> searchLeads(@Param("query") String query);
 
+    List<Lead> findByAssignedToIsNull(); // ✅ bo'sh (unassigned)
+    List<Lead> findByAssignedTo(User assignedTo); // ✅ managerga tegishli
+
+
+
+    List<Lead> findAllByAssignedFalseAndDeletedFalse();
+
+    // Hodim o‘ziga biriktirilgan leadlarni ko‘radi
+    List<Lead> findAllByAssignedToId(Long userId);
 
 
 

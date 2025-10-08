@@ -3,7 +3,6 @@ package com.crm.reception.repository;
 import com.crm.reception.entity.VisitSchedule;
 import com.crm.reception.entity.VisitStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

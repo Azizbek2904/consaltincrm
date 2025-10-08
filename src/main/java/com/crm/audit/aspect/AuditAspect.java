@@ -1,5 +1,4 @@
 package com.crm.audit.aspect;
-
 import com.crm.audit.service.AuditLogService;
 import com.crm.user.entity.User;
 import com.crm.user.repository.UserRepository;
@@ -10,17 +9,13 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-
-
 @Aspect
 @Component
 @RequiredArgsConstructor
 public class AuditAspect {
-
     private final AuditLogService auditLogService;
     private final UserRepository userRepository;
     private final HttpServletRequest request;
-
     private User getCurrentUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String email;

@@ -5,9 +5,11 @@ import com.crm.common.util.ApiResponse;
 import com.crm.lead.dto.LeadRequest;
 import com.crm.lead.dto.LeadResponse;
 import com.crm.lead.service.LeadService;
+import com.crm.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -25,6 +27,23 @@ public class LeadController {
     @PreAuthorize("hasAuthority('CREATE_LEADS') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeadResponse>> createLead(@Valid @RequestBody LeadRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Lead created", leadService.createLead(request)));
+    }
+    @GetMapping("/unassigned")
+    public ResponseEntity<ApiResponse<?>> getUnassignedLeads() {
+        return ResponseEntity.ok(ApiResponse.ok("Unassigned leads", leadService.getUnassignedLeads()));
+    }
+
+    // 🔹 Hodimga biriktirilgan leadlar
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<?>> getMyLeads() {
+        Long currentUserId = SecurityContextHolder.getContext().getAuthentication() != null
+                ? ((User) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId()
+                : null;
+
+        if (currentUserId == null)
+            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized"));
+
+        return ResponseEntity.ok(ApiResponse.ok("My assigned leads", leadService.getMyLeads(currentUserId)));
     }
 
     // ✅ 2. Lead yangilash

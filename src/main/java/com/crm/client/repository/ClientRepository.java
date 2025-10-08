@@ -40,9 +40,24 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     );
 
 
-    List<Client> findByArchivedFalseAndDeletedFalse(); // faqat aktivlar
-    List<Client> findByArchivedTrueAndDeletedFalse();  // faqat arxivdagilar
-    List<Client> findByDeletedTrue();                  // faqat o‘chirilganlar
+    List<Client> findByArchivedFalseAndDeletedFalse();
+
+    // Archived
+    List<Client> findByArchivedTrueAndDeletedFalse();
+
+    // Deleted
+    List<Client> findByDeletedTrue();
+
+    // Filter: Active by Region / Country
+    List<Client> findByArchivedFalseAndDeletedFalseAndRegion(String region);
+
+    List<Client> findByArchivedFalseAndDeletedFalseAndTargetCountry(String targetCountry);
+
+    List<Client> findByArchivedFalseAndDeletedFalseAndRegionAndTargetCountry(String region, String targetCountry);
+
+
+   // List<Client> findByConvertedToMainPaymentTrueAndDeletedFalse();
+    List<Client> findByMainPaymentTrueAndDeletedFalse();
 
 
 }

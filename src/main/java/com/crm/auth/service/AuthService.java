@@ -30,19 +30,28 @@ public class AuthService {
             throw new CustomException("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
 
-        // ✅ Bloklangan foydalanuvchi login qila olmaydi
         if (!user.isActive()) {
             throw new CustomException("User is blocked", HttpStatus.FORBIDDEN);
         }
 
+        // 🔐 JWT token yaratamiz
         String token = jwtProvider.generateToken(
                 user.getEmail(),
                 user.getRole().name(),
                 user.getPermissions()
         );
 
-        return new TokenResponse(token, user.getRole().name(), user.getPermissions());
+        // 🔙 Token bilan birga user ma'lumotini qaytaramiz
+        return TokenResponse.builder()
+                .token(token)
+                .userId(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .permissions(user.getPermissions())
+                .build();
     }
+
 
 
     public User initSuperAdmin(String email, String password) {

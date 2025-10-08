@@ -25,13 +25,11 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     private Set<Permission> permissions = new HashSet<>();
-
     @Column(nullable = false)
     private boolean active;
     @Column(nullable = false)
     private boolean deleted;
     @Column(nullable = false)
     private boolean archived;
-
 
 }

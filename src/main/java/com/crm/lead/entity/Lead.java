@@ -40,6 +40,10 @@ public class Lead {
     @Enumerated(EnumType.STRING)
     private MeetingStatus meetingStatus;
 
+    @Column(nullable = false)
+    private boolean assigned = false; // default: false
+
+
 
 
 }

@@ -14,5 +14,7 @@ public class ClientFileResponse {
     private String documentType;
     private String previewUrl;   // 🔹 inline ko‘rish uchun
     private String downloadUrl;  // 🔹 yuklab olish uchun
+    private String region;
+    private String targetCountry;
 
 }
