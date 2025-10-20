@@ -1,0 +1,61 @@
+name: 🚀 Auto Deploy CRM Backend
+
+on:
+  push:
+    branches:
+      - main  # yoki sen ishlatayotgan branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy project to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "."
+          target: "/root/consultingcrm"
+
+      - name: Build and restart backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /root/consultingcrm
+            ./mvnw clean package -DskipTests || mvn clean package -DskipTests
+            if systemctl list-units --full -all | grep -Fq "crm.service"; then
+              echo "🔄 Restarting existing service..."
+              sudo systemctl restart crm
+            else
+              echo "⚙️ Creating new systemd service..."
+              echo "[Unit]
+              Description=Consulting CRM Backend
+              After=network.target
+
+              [Service]
+              User=root
+              WorkingDirectory=/root/consultingcrm
+              ExecStart=/usr/bin/java -jar /root/consultingcrm/target/consultingcrm-0.0.1-SNAPSHOT.jar
+              SuccessExitStatus=143
+              Restart=always
+              RestartSec=5
+              Environment=SPRING_PROFILES_ACTIVE=prod
+              Environment=SERVER_PORT=8080
+
+              [Install]
+              WantedBy=multi-user.target" | sudo tee /etc/systemd/system/crm.service
+
+              sudo systemctl daemon-reload
+              sudo systemctl enable crm
+              sudo systemctl start crm
+            fi
+
+            echo "✅ Deployment completed successfully!"
