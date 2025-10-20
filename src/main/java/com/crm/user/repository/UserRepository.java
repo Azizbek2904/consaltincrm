@@ -1,4 +1,5 @@
 package com.crm.user.repository;
+import com.crm.user.entity.Role;
 import com.crm.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
@@ -10,14 +11,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Hodimni faolligi bo‘yicha qidirish
     Optional<User> findByEmailAndActiveTrue(String email);
 
-    List<User> findByArchivedTrue();
 
     List<User> findByDeletedTrue();
     // UserRepository.java
     List<User> findByActiveTrueAndDeletedFalseAndArchivedFalse();
 
-    // ✅ Bloklangan (active=false) foydalanuvchilarni olish
-    List<User> findByActiveFalseAndDeletedFalseAndArchivedFalse();
-
-
+    List<User> findAllByRole(Role role);
 }

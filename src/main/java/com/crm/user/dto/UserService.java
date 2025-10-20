@@ -100,11 +100,16 @@ public class UserService {
     // 🔹 Default permissions
     // 🔹 Default permissions
 // 🔹 Default permissions
+// ✅ Default permissionlar har bir role uchun
     private Set<Permission> defaultPermissionsForRole(Role role) {
         return switch (role) {
-            case SUPER_ADMIN -> Set.of(Permission.values()); // 🔑 hamma narsaga huquq
 
+            // 🔰 1️⃣ SUPER_ADMIN — barcha ruxsatlar
+            case SUPER_ADMIN -> Set.of(Permission.values());
+
+            // 🔰 2️⃣ ADMIN — keng vakolat, lekin cheklangan delete
             case ADMIN -> Set.of(
+                    // 👤 USER ruxsatlari
                     Permission.USER_VIEW,
                     Permission.USER_CREATE,
                     Permission.USER_UPDATE,
@@ -112,86 +117,143 @@ public class UserService {
                     Permission.USER_ASSIGN_ROLES,
                     Permission.USER_MANAGE_PERMISSIONS,
 
+                    // 🧾 CLIENT ruxsatlari
                     Permission.CLIENT_VIEW,
+                    Permission.CLIENT_CREATE,
                     Permission.CLIENT_UPDATE,
+                    Permission.CLIENT_DELETE,
+                    Permission.CLIENT_IMPORT,
+                    Permission.CLIENT_EXPORT,
 
+                    // 🎯 LEAD ruxsatlari
                     Permission.LEAD_VIEW,
+                    Permission.LEAD_CREATE,
                     Permission.LEAD_UPDATE,
                     Permission.LEAD_DELETE,
+                    Permission.LEAD_CONVERT_TO_CLIENT,
+                    Permission.LEAD_IMPORT,
+                    Permission.LEAD_EXPORT,
 
+                    // 🔄 LEAD STATUS
                     Permission.LEAD_STATUS_CREATE,
                     Permission.LEAD_STATUS_VIEW,
-                    Permission.LEAD_STATUS_DELETE
-            );
+                    Permission.LEAD_STATUS_DELETE,
 
-            case FINANCE -> Set.of(
+                    // 📋 LEAD ASSIGN
+                    Permission.LEAD_ASSIGN_CREATE,
+                    Permission.LEAD_ASSIGN_VIEW,
+                    Permission.LEAD_ASSIGN_DELETE,
+                    Permission.LEAD_ASSIGN_REASSIGN,
+
+                    // 📂 DOCUMENT & PAYMENT
+                    Permission.DOCUMENT_VIEW,
+                    Permission.DOCUMENT_UPLOAD,
                     Permission.PAYMENT_VIEW,
                     Permission.PAYMENT_UPLOAD,
-                    Permission.CLIENT_VIEW,
-                    Permission.CLIENT_UPDATE,
-                    Permission.DOCUMENT_UPLOAD
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_BOARD_CREATE,
+                    Permission.KANBAN_BOARD_VIEW,
+                    Permission.KANBAN_TASK_CREATE,
+                    Permission.KANBAN_TASK_UPDATE,
+                    Permission.KANBAN_TASK_MOVE,
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
             );
 
+            // 🔰 3️⃣ MANAGER — jarayonlarni boshqaradi
+            case MANAGER -> Set.of(
+                    Permission.LEAD_VIEW,
+                    Permission.LEAD_UPDATE,
+                    Permission.LEAD_ASSIGN_VIEW,
+                    Permission.LEAD_ASSIGN_CREATE,
+                    Permission.LEAD_ASSIGN_DELETE,
+                    Permission.CLIENT_VIEW,
+                    Permission.CLIENT_UPDATE,
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_BOARD_VIEW,
+                    Permission.KANBAN_TASK_MOVE,
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
+            );
+
+            // 🔰 4️⃣ SALES_MANAGER — mijoz va lead bilan ishlaydi
+            case SALES_MANAGER -> Set.of(
+                    Permission.LEAD_VIEW,
+                    Permission.LEAD_UPDATE,
+                    Permission.LEAD_ACTIVITY_ADD,
+                    Permission.LEAD_ACTIVITY_VIEW,
+                    Permission.CLIENT_VIEW,
+                    Permission.PAYMENT_VIEW,
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_BOARD_VIEW,
+                    Permission.KANBAN_TASK_MOVE,
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
+            );
+
+            // 🔰 5️⃣ DOCUMENTS — hujjatlar bilan ishlovchi
             case DOCUMENTS -> Set.of(
                     Permission.DOCUMENT_UPLOAD,
                     Permission.DOCUMENT_VIEW,
                     Permission.LEAD_VIEW,
                     Permission.CLIENT_VIEW,
-                    Permission.CLIENT_UPDATE,
-                    Permission.LEAD_UPDATE
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
             );
 
-            case SALES_MANAGER -> Set.of(
-                    Permission.LEAD_VIEW,
-                    Permission.LEAD_CREATE,
-                    Permission.LEAD_UPDATE,
-                    Permission.LEAD_DELETE,
-
-                    Permission.CLIENT_VIEW,
+            // 🔰 6️⃣ FINANCE — to‘lovlar bilan ishlaydi
+            case FINANCE -> Set.of(
                     Permission.PAYMENT_VIEW,
-                    Permission.DOCUMENT_VIEW
-            );
-
-            case MANAGER -> Set.of(
-                    Permission.LEAD_VIEW,
-                    Permission.LEAD_CONVERT_TO_CLIENT,
+                    Permission.PAYMENT_UPLOAD,
                     Permission.CLIENT_VIEW,
-                    Permission.CLIENT_UPDATE,
-                    Permission.CLIENT_DELETE,
 
-                    Permission.DOCUMENT_UPLOAD,
-                    Permission.PAYMENT_UPLOAD
+                    // 📊 KANBAN
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
             );
 
+            // 🔰 7️⃣ MANAGER_CONSULTANT — mijoz bilan bevosita ishlaydi
             case MANAGER_CONSULTANT -> Set.of(
                     Permission.CLIENT_VIEW,
                     Permission.CLIENT_UPDATE,
                     Permission.LEAD_VIEW,
-                    Permission.LEAD_CREATE
+                    Permission.LEAD_CREATE,
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
             );
 
+            // 🔰 8️⃣ RECEPTION — tashriflar, yo‘qlamalar
             case RECEPTION -> Set.of(
                     Permission.CLIENT_VIEW,
                     Permission.LEAD_VIEW,
-                    Permission.LEAD_UPDATE,
 
+                    // 🕓 Reception faoliyatlari
+                    Permission.RECEPTION_VIEW_ATTENDANCE,
+                    Permission.RECEPTION_VIEW_VISITS,
                     Permission.RECEPTION_CHECK_IN,
                     Permission.RECEPTION_CHECK_OUT,
-                    Permission.RECEPTION_VIEW_ATTENDANCE,
-                    Permission.RECEPTION_DAILY_REPORT,
-                    Permission.RECEPTION_WEEKLY_REPORT,
-                    Permission.RECEPTION_MONTHLY_REPORT,
                     Permission.RECEPTION_SCHEDULE_LEAD,
                     Permission.RECEPTION_SCHEDULE_CLIENT,
                     Permission.RECEPTION_MARK_CAME,
                     Permission.RECEPTION_MARK_MISSED,
-                    Permission.RECEPTION_VIEW_PLANNED,
-                    Permission.RECEPTION_VIEW_VISITS
+
+                    // 📊 KANBAN
+                    Permission.KANBAN_TASK_COMPLETE,
+                    Permission.KANBAN_TASK_VIEW_USER
             );
 
+            // 🔰 9️⃣ DEFAULT — boshqa holatlar
             default -> Set.of();
         };
     }
+
 
     // ✅ 5. Hodimni o‘chirish
     // ✅ Soft delete

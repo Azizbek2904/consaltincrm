@@ -24,9 +24,12 @@ public class MainPaymentController {
 
     private final MainPaymentService mainPaymentService;
 
-    // ✅ Filter va olish
+    /**
+     * ✅ 1. Main payment ma'lumotlarini filter bilan olish
+     * Ruxsat: SUPER_ADMIN, ADMIN, MANAGER, FINANCE yoki CLIENT_VIEW, PAYMENT_VIEW
+     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE') or hasAnyAuthority('CLIENT_VIEW','PAYMENT_VIEW')")
     public ResponseEntity<ApiResponse<List<Client>>> getMainPayments(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,
@@ -38,9 +41,12 @@ public class MainPaymentController {
         return ResponseEntity.ok(ApiResponse.ok("Filtered main payments", result));
     }
 
-    // ✅ Excel eksport
+    /**
+     * ✅ 2. Main paymentlarni Excel faylga eksport qilish
+     * Ruxsat: SUPER_ADMIN, ADMIN, MANAGER, FINANCE yoki CLIENT_EXPORT
+     */
     @GetMapping("/export/excel")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE') or hasAuthority('CLIENT_EXPORT')")
     public ResponseEntity<InputStreamResource> exportMainPaymentsExcel(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,
@@ -55,9 +61,12 @@ public class MainPaymentController {
                 .body(new InputStreamResource(in));
     }
 
-    // ✅ CSV eksport
+    /**
+     * ✅ 3. Main paymentlarni CSV faylga eksport qilish
+     * Ruxsat: SUPER_ADMIN, ADMIN, MANAGER, FINANCE yoki CLIENT_EXPORT
+     */
     @GetMapping("/export/csv")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE') or hasAuthority('CLIENT_EXPORT')")
     public ResponseEntity<InputStreamResource> exportMainPaymentsCsv(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,

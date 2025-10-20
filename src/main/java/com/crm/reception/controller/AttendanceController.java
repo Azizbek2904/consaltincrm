@@ -20,42 +20,42 @@ public class AttendanceController {
 
     // ✅ Hodim ishga keldi
     @PostMapping("/{userId}/check-in")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_CHECK_IN')")
     public ResponseEntity<Attendance> checkIn(@PathVariable Long userId) {
         return ResponseEntity.ok(service.checkIn(userId));
     }
 
     // ✅ Hodim ishni tugatdi
     @PostMapping("/{userId}/check-out")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_CHECK_OUT')")
     public ResponseEntity<Attendance> checkOut(@PathVariable Long userId) {
         return ResponseEntity.ok(service.checkOut(userId));
     }
 
     // ✅ Bugungi attendance
     @GetMapping("/today")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_VIEW_ATTENDANCE')")
     public ResponseEntity<List<Attendance>> getTodayAttendance() {
         return ResponseEntity.ok(service.getTodayAttendance());
     }
 
     // ✅ Kunlik hisobot
     @GetMapping("/report/daily")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('RECEPTION_DAILY_REPORT')")
     public ResponseEntity<Map<String, Long>> getDailyReport(@RequestParam String date) {
         return ResponseEntity.ok(service.getDailyReport(LocalDate.parse(date)));
     }
 
     // ✅ Haftalik hisobot
     @GetMapping("/report/weekly")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('RECEPTION_WEEKLY_REPORT')")
     public ResponseEntity<Map<String, Long>> getWeeklyReport(@RequestParam String start, @RequestParam String end) {
         return ResponseEntity.ok(service.getWeeklyReport(LocalDate.parse(start), LocalDate.parse(end)));
     }
 
     // ✅ Oylik hisobot
     @GetMapping("/report/monthly")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('RECEPTION_MONTHLY_REPORT')")
     public ResponseEntity<Map<String, Long>> getMonthlyReport(@RequestParam int year, @RequestParam int month) {
         return ResponseEntity.ok(service.getMonthlyReport(year, month));
     }

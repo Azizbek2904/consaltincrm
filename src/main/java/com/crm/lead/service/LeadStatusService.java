@@ -26,8 +26,10 @@ public class LeadStatusService {
                 .name(name.toUpperCase())
                 .color(color != null ? color : "#d1d5db") // agar rang berilmasa default kulrang
                 .build();
+        System.out.println("🟢 LeadStatus yaratilyapti: name=" + name + ", color=" + color);
 
         return repository.save(status);
+
     }
 
 

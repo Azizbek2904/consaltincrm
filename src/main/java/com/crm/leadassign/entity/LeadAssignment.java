@@ -36,4 +36,10 @@ public class LeadAssignment {
     private List<Lead> leads;
 
     private LocalDateTime assignedAt;
+    private LocalDateTime lastUpdatedAt;
+
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL)
+    private List<LeadActivity> activities; // yangi jadval (lead bilan ishlash tarixlari)
+
+    private boolean deleted; // 🆕 assign o‘chirilganmi
 }

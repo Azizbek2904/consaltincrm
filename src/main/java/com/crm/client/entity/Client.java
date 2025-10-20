@@ -58,7 +58,7 @@ public class Client {
     private List<String> comments = new ArrayList<>();
 
     @ManyToOne
-    @JoinColumn(name = "converted_by_id")
+    @JoinColumn(name = "converted_by_id", nullable = true)
     private User convertedBy;
 
 
@@ -83,6 +83,10 @@ public class Client {
     @CollectionTable(name = "payment_comments", joinColumns = @JoinColumn(name = "client_id"))
     @Column(name = "comment")
     private List<String> paymentComments = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "status_id",nullable = true)
+    private ClientStatus status;
 
 
 }

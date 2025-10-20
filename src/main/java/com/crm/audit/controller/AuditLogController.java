@@ -7,16 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-
 @RestController
 @RequestMapping("/audit")
 @RequiredArgsConstructor
 public class AuditLogController {
-
     private final AuditLogRepository auditLogRepository;
-
     @GetMapping
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<List<AuditLog>>> getAllLogs() {

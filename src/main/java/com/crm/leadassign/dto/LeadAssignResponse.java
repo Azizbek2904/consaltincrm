@@ -15,7 +15,7 @@ public class LeadAssignResponse {
     private String assignedBy;
     private String salesManagerName;
     private String assignedByName;
-   private Integer assignedLeadCount;
+    private Integer assignedLeadCount;
     private List<Long> leadIds;
     private LocalDateTime assignedAt;
 }

@@ -22,18 +22,20 @@ public class LeadController {
 
     private final LeadService leadService;
 
-    // ✅ 1. Lead qo‘shish
+    // ✅ 1. Lead yaratish
     @PostMapping
-    @PreAuthorize("hasAuthority('CREATE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_CREATE') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeadResponse>> createLead(@Valid @RequestBody LeadRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Lead created", leadService.createLead(request)));
     }
+
+    // ✅ 2. Bo‘sh (unassigned) leadlar
     @GetMapping("/unassigned")
     public ResponseEntity<ApiResponse<?>> getUnassignedLeads() {
         return ResponseEntity.ok(ApiResponse.ok("Unassigned leads", leadService.getUnassignedLeads()));
     }
 
-    // 🔹 Hodimga biriktirilgan leadlar
+    // ✅ 3. Foydalanuvchining o‘z leadlari
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<?>> getMyLeads() {
         Long currentUserId = SecurityContextHolder.getContext().getAuthentication() != null
@@ -46,70 +48,70 @@ public class LeadController {
         return ResponseEntity.ok(ApiResponse.ok("My assigned leads", leadService.getMyLeads(currentUserId)));
     }
 
-    // ✅ 2. Lead yangilash
+    // ✅ 4. Lead yangilash
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('UPDATE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_UPDATE') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeadResponse>> updateLead(
             @PathVariable Long id,
             @Valid @RequestBody LeadRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Lead updated", leadService.updateLead(id, request)));
     }
 
-    // ✅ 3. Barcha leadlarni olish
+    // ✅ 5. Barcha leadlarni olish
     @GetMapping
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> getAllLeads() {
         return ResponseEntity.ok(ApiResponse.ok("All leads", leadService.getAllLeads()));
     }
 
-    // ✅ 4. Bitta leadni olish
+    // ✅ 6. Bitta leadni olish
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeadResponse>> getLeadById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Lead details", leadService.getLeadById(id)));
     }
 
-    // ✅ 5. Soft delete (vaqtincha o‘chirish)
+    // ✅ 7. Soft delete (vaqtincha o‘chirish)
     @DeleteMapping("/{id}/soft")
-    @PreAuthorize("hasAuthority('DELETE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_DELETE') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> softDeleteLead(@PathVariable Long id) {
         leadService.softDeleteLead(id);
         return ResponseEntity.ok(ApiResponse.ok("Lead vaqtincha o‘chirildi", null));
     }
 
-    // ✅ 6. Permanent delete (bazadan butunlay)
+    // ✅ 8. Permanent delete (bazadan butunlay o‘chirish)
     @DeleteMapping("/{id}/permanent")
-    @PreAuthorize("hasAuthority('DELETE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_DELETE') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> permanentDeleteLead(@PathVariable Long id) {
         leadService.deleteLead(id);
         return ResponseEntity.ok(ApiResponse.ok("Lead butunlay o‘chirildi", null));
     }
 
-    // ✅ 7. Lead → Client konvertatsiya
+    // ✅ 9. Lead → Client konvertatsiya
     @PutMapping("/{id}/convert")
-    @PreAuthorize("hasAuthority('CONVERT_LEAD_TO_CLIENT') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_CONVERT_TO_CLIENT') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<ClientResponse>> convertToClient(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Lead converted to client", leadService.convertToClient(id)));
     }
 
-    // ✅ 8. Qidiruv
+    // ✅ 10. Qidiruv
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> searchLeads(@RequestParam String query) {
         return ResponseEntity.ok(ApiResponse.ok("Search results", leadService.searchLeads(query)));
     }
 
-    // ✅ 9. Restore (qayta tiklash)
+    // ✅ 11. Restore (qayta tiklash)
     @PutMapping("/{id}/restore")
-    @PreAuthorize("hasAuthority('UPDATE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_UPDATE') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> restoreLead(@PathVariable Long id) {
         leadService.restoreLead(id);
         return ResponseEntity.ok(ApiResponse.ok("Lead restored", null));
     }
 
-    // ✅ 10. Deleted bo‘limi
+    // ✅ 12. Deleted leadlar ro‘yxati
     @GetMapping("/deleted")
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAuthority('LEAD_VIEW') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> getDeletedLeads() {
         return ResponseEntity.ok(ApiResponse.ok("Deleted leads", leadService.getDeletedLeads()));
     }

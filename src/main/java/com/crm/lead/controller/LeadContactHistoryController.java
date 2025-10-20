@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/leads/history")
+@RequestMapping("/leads/history")
 @RequiredArgsConstructor
 public class LeadContactHistoryController {
 

@@ -19,9 +19,9 @@ public class LeadAssignController {
 
     private final LeadAssignService leadAssignService;
 
-    // ✅ 1. Leadlarni Sales Manager’ga biriktirish (faqat ADMIN yoki MANAGER)
+    // ✅ 1. Leadlarni Sales Manager’ga biriktirish
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('LEAD_UPDATE')")
     public ResponseEntity<ApiResponse<LeadAssignResponse>> assignLeads(@RequestBody LeadAssignRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "✅ Leads successfully assigned!",
@@ -29,9 +29,9 @@ public class LeadAssignController {
         ));
     }
 
-    // ✅ 2. Tarix: barcha assign’lar (faqat ADMIN yoki MANAGER)
+    // ✅ 2. Barcha tarix (Assignment History)
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadAssignHistoryResponse>>> getAssignmentHistory() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "📜 Assignment history loaded",
@@ -39,10 +39,10 @@ public class LeadAssignController {
         ));
     }
 
-    // ✅ 3. Sana oralig‘i bo‘yicha qidirish
+    // ✅ 3. Sana oralig‘ida qidirish
     @GetMapping("/history/by-date")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
-    public ResponseEntity<ApiResponse<List<LeadAssignHistoryResponse>>> searchByDate(
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<ApiResponse<List<LeadAssignHistoryResponse>>> searchByDateRange(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end
     ) {
@@ -51,9 +51,10 @@ public class LeadAssignController {
                 leadAssignService.searchByDateRange(start, end)
         ));
     }
-    // ✅ 4. Sales Manager’lar ro‘yxati (dropdown uchun)
+
+    // ✅ 4. Sales Managerlar ro‘yxati (dropdown uchun)
     @GetMapping("/sales-managers")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('USER_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadAssignSalesManagerResponse>>> getSalesManagers() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "👥 Sales managers list loaded",
@@ -63,7 +64,7 @@ public class LeadAssignController {
 
     // ✅ 5. Umumiy bo‘sh (unassigned) leadlar
     @GetMapping("/unassigned")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','RECEPTION') or hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> getUnassignedLeads() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "🟢 Unassigned leads fetched",
@@ -71,9 +72,9 @@ public class LeadAssignController {
         ));
     }
 
-    // ✅ 6. Joriy foydalanuvchi (Sales Manager) uchun — o‘z leadlarini olish
+    // ✅ 6. Joriy foydalanuvchi (Sales Manager) — o‘z leadlarini ko‘radi
     @GetMapping("/my-leads")
-    @PreAuthorize("hasAnyRole('SALES_MANAGER','ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SALES_MANAGER','ADMIN','SUPER_ADMIN') or hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadResponse>>> getMyLeads() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "👤 Your assigned leads loaded",
@@ -81,9 +82,9 @@ public class LeadAssignController {
         ));
     }
 
-    // ✅ 7. Hodim o‘z leadini yangilaydi (faqat o‘ziga tegishli lead uchun)
+    // ✅ 7. Sales Manager o‘z leadini yangilaydi
     @PutMapping("/my-leads/{leadId}")
-    @PreAuthorize("hasRole('SALES_MANAGER')")
+    @PreAuthorize("hasAnyRole('SALES_MANAGER','ADMIN','SUPER_ADMIN') or hasAuthority('LEAD_UPDATE')")
     public ResponseEntity<ApiResponse<LeadResponse>> updateMyLead(
             @PathVariable Long leadId,
             @RequestBody LeadResponse updatedLead
@@ -94,11 +95,50 @@ public class LeadAssignController {
         ));
     }
 
-    // ✅ 8. Tarixdan assign’ni o‘chirish (faqat ADMIN)
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteAssignment(@PathVariable Long id) {
-        leadAssignService.deleteAssignment(id);
-        return ResponseEntity.ok(ApiResponse.ok("🗑️ Assignment deleted", null));
+    // ✅ 8. Assignment detail (leads + activities)
+    @GetMapping("/{assignmentId}/details")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<ApiResponse<LeadAssignDetailedResponse>> getAssignmentDetails(@PathVariable Long assignmentId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "📋 Assignment details loaded",
+                leadAssignService.getAssignmentDetails(assignmentId)
+        ));
     }
+
+    // ✅ 9. Sales Manager activity log (faoliyati)
+    @GetMapping("/sales-manager/{id}/activities")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER') or hasAuthority('LEAD_VIEW')")
+    public ResponseEntity<ApiResponse<List<LeadActivityResponse>>> getActivitiesBySalesManager(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "🧾 Sales manager activity log loaded",
+                leadAssignService.getActivitiesBySalesManager(id)
+        ));
+    }
+
+    // ✅ 10. Activity qo‘shish (Sales Manager yoki Admin)
+    @PostMapping("/leads/{leadId}/activity")
+    @PreAuthorize("hasAnyRole('SALES_MANAGER','ADMIN','SUPER_ADMIN') or hasAuthority('LEAD_UPDATE')")
+    public ResponseEntity<ApiResponse<Void>> addLeadActivity(
+            @PathVariable Long leadId,
+            @RequestParam String action,
+            @RequestParam(required = false) String note
+    ) {
+        leadAssignService.addLeadActivity(leadId, action, note);
+        return ResponseEntity.ok(ApiResponse.ok("📝 Activity logged", null));
+    }
+
+    // ✅ 11. Assignmentni o‘chirish yoki tiklash
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('LEAD_DELETE')")
+    public ResponseEntity<ApiResponse<Void>> deleteAssignment(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean restoreToGeneralList
+    ) {
+        leadAssignService.deleteAssignment(id, restoreToGeneralList);
+        String msg = restoreToGeneralList
+                ? "♻️ Lead(lar) umumiy ro‘yxatga qaytarildi, tarix o‘chirildi"
+                : "🗑️ Lead(lar) o‘chirildi, tarix o‘chirildi";
+        return ResponseEntity.ok(ApiResponse.ok(msg, null));
+    }
+
 }

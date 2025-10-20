@@ -1,50 +1,41 @@
 package com.crm.dashboard.controller;
 
-import com.crm.client.dto.PaymentStatus;
+import com.crm.common.util.ApiResponse;
+import com.crm.dashboard.dto.DashboardResponse;
 import com.crm.dashboard.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
 @RequiredArgsConstructor
 public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    // ✅ Oylik lead soni
-    @GetMapping("/leads/monthly")
-    public ResponseEntity<Map<String, Long>> getMonthlyLeads(
-            @RequestParam int year,
-            @RequestParam int month
+    // 🔹 Asosiy dashboard statistikasi (barcha)
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE')")
+    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboardStats(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok(dashboardService.getMonthlyLeads(year, month));
+        DashboardResponse data = dashboardService.getStats(startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.ok("📊 Dashboard stats fetched", data));
+    }
+    @GetMapping("/trends")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTrends(
+            @RequestParam(defaultValue = "daily") String period
+    ) {
+        Map<String, Object> data = dashboardService.getTrends(period.toLowerCase());
+        return ResponseEntity.ok(ApiResponse.ok("Trend data fetched", data));
     }
 
-    // ✅ Client status bo‘yicha soni
-    @GetMapping("/clients/status")
-    public ResponseEntity<Map<PaymentStatus, Long>> getClientByStatus() {
-        return ResponseEntity.ok(dashboardService.getClientByStatus());
-    }
-
-    // ✅ Oylik to‘lov summalari
-    @GetMapping("/payments/monthly")
-    public ResponseEntity<Map<String, Double>> getPaymentsByMonth(
-            @RequestParam int year,
-            @RequestParam int month
-    ) {
-        return ResponseEntity.ok(dashboardService.getPaymentsByMonth(year, month));
-    }
-
-    // ✅ Operator faoliyati (LeadContactHistory asosida)
-    @GetMapping("/operators/activity")
-    public ResponseEntity<Map<String, Long>> getOperatorActivity(
-            @RequestParam int year,
-            @RequestParam int month
-    ) {
-        return ResponseEntity.ok(dashboardService.getOperatorActivity(year, month));
-    }
 }

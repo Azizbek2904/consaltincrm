@@ -17,30 +17,32 @@ public class LeadStatusController {
 
     private final LeadStatusService service;
 
-    // ✅ 1. Yangi status yaratish
+    // ✅ 1. Yangi lead status yaratish
     @PostMapping
-    @PreAuthorize("hasAuthority('CREATE_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('LEAD_STATUS_CREATE')")
     public ResponseEntity<ApiResponse<LeadStatus>> createStatus(
             @RequestParam String name,
             @RequestParam(required = false) String color
     ) {
         return ResponseEntity.ok(
-                ApiResponse.ok("Status created", service.createStatus(name, color))
+                ApiResponse.ok("Lead status created", service.createStatus(name, color))
         );
     }
 
-    // ✅ 2. Barcha statuslarni olish
+    // ✅ 2. Barcha lead statuslarni olish
     @GetMapping
-    @PreAuthorize("hasAuthority('VIEW_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER') or hasAuthority('LEAD_STATUS_VIEW')")
     public ResponseEntity<ApiResponse<List<LeadStatus>>> getAllStatuses() {
-        return ResponseEntity.ok(ApiResponse.ok("All statuses", service.getAllStatuses()));
+        return ResponseEntity.ok(
+                ApiResponse.ok("All lead statuses", service.getAllStatuses())
+        );
     }
 
-    // ✅ 3. Statusni o‘chirish
+    // ✅ 3. Lead statusni o‘chirish
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('DELETE_LEAD_STATUS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('LEAD_STATUS_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteStatus(@PathVariable Long id) {
         service.deleteStatus(id);
-        return ResponseEntity.ok(ApiResponse.ok("Status deleted", null));
+        return ResponseEntity.ok(ApiResponse.ok("Lead status deleted", null));
     }
 }

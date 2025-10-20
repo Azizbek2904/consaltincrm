@@ -24,21 +24,31 @@ public class ClientImportExportController {
 
     private final ClientImportExportService importExportService;
 
-    // ✅ 1. Import qilish (Excel yuklash)
+    /**
+     * ✅ 1. Clientlarni Excel fayldan import qilish
+     * Ruxsat: SUPER_ADMIN, ADMIN yoki CLIENT_IMPORT permissioniga ega foydalanuvchilar
+     */
     @PostMapping("/import")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
-    public ResponseEntity<ApiResponse<List<Client>>> importClients(@RequestParam("file") MultipartFile file) throws IOException {
-        return ResponseEntity.ok(ApiResponse.ok("Clients imported", importExportService.importClients(file)));
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('CLIENT_IMPORT')")
+    public ResponseEntity<ApiResponse<List<Client>>> importClients(
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        List<Client> importedClients = importExportService.importClients(file);
+        return ResponseEntity.ok(ApiResponse.ok("✅ Clients imported successfully", importedClients));
     }
 
-    // ✅ 2. Export qilish (Excel)
+    /**
+     * ✅ 2. Clientlarni Excel faylga eksport qilish
+     * Ruxsat: SUPER_ADMIN, ADMIN, FINANCE, MANAGER yoki CLIENT_EXPORT permissioniga ega foydalanuvchilar
+     */
     @GetMapping("/export")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE','MANAGER') or hasAuthority('CLIENT_EXPORT')")
     public ResponseEntity<InputStreamResource> exportClients(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String targetCountry,
             @RequestParam(required = false) LocalDate start,
-            @RequestParam(required = false) LocalDate end) throws IOException {
+            @RequestParam(required = false) LocalDate end
+    ) throws IOException {
 
         ByteArrayInputStream in = importExportService.exportClients(region, targetCountry, start, end);
 

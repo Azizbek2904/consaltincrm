@@ -40,5 +40,8 @@ public class ClientResponse {
     private LocalDateTime nextVisitDate;
 
     private List<String> paymentComments;
+    private Long statusId;
+    private String statusName;
+    private String statusColor;
 
 }

@@ -1,5 +1,6 @@
 package com.crm.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -10,7 +11,6 @@ public class ClientRequest {
     @NotBlank
     private String fullName;
 
-    @Pattern(regexp = "^\\+998\\d{9}$", message = "Telefon raqam noto‘g‘ri")
     private String phone1;
 
     private String phone2;
@@ -19,12 +19,12 @@ public class ClientRequest {
 
     @PositiveOrZero
     private Double initialPayment;
-
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate initialPaymentDate;
 
     @PositiveOrZero
     private Double totalPayment;
-
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate totalPaymentDate;
 
     private Long leadId;
@@ -34,5 +34,6 @@ public class ClientRequest {
 
     // ✅ Yangi qo‘shildi
     private String contractNumber;
+    private Long statusId;
 
 }

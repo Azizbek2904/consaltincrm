@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,7 +25,7 @@ public class ClientFilterService {
     private final ClientRepository clientRepository;
 
     // ✅ Filter qilish
-    public List<Client> filterClients(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end) {
+    public List<Client> filterClients(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end, Long statusId) {
         List<Client> clients = clientRepository.findAll();
 
         return clients.stream()
@@ -32,19 +33,21 @@ public class ClientFilterService {
                 .filter(c -> targetCountry == null || targetCountry.equalsIgnoreCase(c.getTargetCountry()))
                 .filter(c -> start == null || (c.getInitialPaymentDate() != null && !c.getInitialPaymentDate().isBefore(start)))
                 .filter(c -> end == null || (c.getInitialPaymentDate() != null && !c.getInitialPaymentDate().isAfter(end)))
+                .filter(c -> statusId == null || (c.getStatus() != null && Objects.equals(c.getStatus().getId(), statusId))) // ✅ yangi qo‘shildi
                 .collect(Collectors.toList());
     }
 
+
     // ✅ Batch delete (filterlanganlarni o‘chirish)
-    public void deleteFilteredClients(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end) {
-        List<Client> filtered = filterClients(status, targetCountry, start, end);
+    public void deleteFilteredClients(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end,Long statusId) {
+        List<Client> filtered = filterClients(status, targetCountry, start, end,statusId);
         clientRepository.deleteAll(filtered);
     }
 
 
     // ✅ Excel export
-    public ByteArrayInputStream exportClientsToExcel(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end) throws IOException {
-        List<Client> clients = filterClients(status, targetCountry, start, end);
+    public ByteArrayInputStream exportClientsToExcel(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end,Long statusId) throws IOException {
+        List<Client> clients = filterClients(status, targetCountry, start, end,statusId);
 
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Filtered Clients");
@@ -60,7 +63,8 @@ public class ClientFilterService {
         header.createCell(7).setCellValue("Total Payment");
         header.createCell(8).setCellValue("Total Payment Date");
         header.createCell(9).setCellValue("Payment Status");
-        header.createCell(10).setCellValue("Files (Links)");
+        header.createCell(10).setCellValue("Status");
+        header.createCell(11).setCellValue("Files (Links)");
 
         int rowIdx = 1;
         for (Client client : clients) {
@@ -75,6 +79,7 @@ public class ClientFilterService {
             row.createCell(7).setCellValue(client.getTotalPayment() != null ? client.getTotalPayment() : 0);
             row.createCell(8).setCellValue(client.getTotalPaymentDate() != null ? client.getTotalPaymentDate().toString() : "");
             row.createCell(9).setCellValue(client.getPaymentStatus() != null ? client.getPaymentStatus().name() : "");
+            row.createCell(10).setCellValue(client.getStatus() != null ? client.getStatus().getName() : ""); // ✅ status nomi chiqadi
 
             // fayllar linklari
             String fileLinks = client.getFiles() != null
@@ -93,8 +98,8 @@ public class ClientFilterService {
     }
 
     // ✅ CSV export
-    public ByteArrayInputStream exportClientsToCsv(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end) throws IOException {
-        List<Client> clients = filterClients(status, targetCountry, start, end);
+    public ByteArrayInputStream exportClientsToCsv(PaymentStatus status, String targetCountry, LocalDate start, LocalDate end,Long statusId) throws IOException {
+        List<Client> clients = filterClients(status, targetCountry, start, end,statusId);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {

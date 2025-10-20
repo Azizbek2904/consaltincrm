@@ -1,12 +1,10 @@
 package com.crm.client.service;
 import com.crm.client.dto.*;
-import com.crm.client.entity.Client;
-import com.crm.client.entity.ClientFile;
-import com.crm.client.entity.ClientPaymentHistory;
-import com.crm.client.entity.DocumentType;
+import com.crm.client.entity.*;
 import com.crm.client.repository.ClientFileRepository;
 import com.crm.client.repository.ClientPaymentHistoryRepository;
 import com.crm.client.repository.ClientRepository;
+import com.crm.client.repository.ClientStatusRepository;
 import com.crm.common.exception.CustomException;
 import com.crm.lead.entity.Lead;
 import com.crm.lead.reposiroty.LeadRepository;
@@ -41,6 +39,7 @@ public class ClientService {
     private final LeadRepository leadRepository;
     private final VisitScheduleRepository visitScheduleRepository;
     private final UserRepository userRepository;
+    private final ClientStatusRepository clientStatusRepository;
     // CREATE
     public ClientResponse createClient(ClientRequest request) {
         Lead lead = request.getLeadId() != null
@@ -63,6 +62,11 @@ public class ClientService {
                 .deleted(false)
                 .archived(false)
                 .build();
+        if (request.getStatusId() != null) {
+            ClientStatus status = clientStatusRepository.findById(request.getStatusId())
+                    .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+            client.setStatus(status);
+        }
 
         return mapToResponse(clientRepository.save(client));
     }
@@ -428,6 +432,97 @@ public class ClientService {
         return mapToResponse(client);
     }
 
+
+
+    private User getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof org.springframework.security.core.userdetails.User springUser) {
+            String email = springUser.getUsername();
+            return userRepository.findByEmail(email)
+                    .orElseThrow(() -> new CustomException("User not found in DB: " + email, HttpStatus.NOT_FOUND));
+        }
+
+        // 🔹 Agar foydalanuvchi topilmasa — default Super Admin
+        return userRepository.findByEmail("atham@gmail.com")
+                .orElseThrow(() -> new CustomException("Default admin user not found", HttpStatus.NOT_FOUND));
+    }
+
+
+    // ✅ Bitta clientni olish
+    public ClientResponse getClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
+        return mapToResponse(client);
+    }
+
+    // ✅ PATCH: faqat yuborilgan fieldlarni yangilash
+    public ClientResponse updateClient(Long id, ClientRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
+
+        if (request.getFullName() != null) client.setFullName(request.getFullName());
+        if (request.getPhone1() != null) client.setPhone1(request.getPhone1());
+        if (request.getPhone2() != null) client.setPhone2(request.getPhone2());
+        if (request.getRegion() != null) client.setRegion(request.getRegion());
+        if (request.getTargetCountry() != null) client.setTargetCountry(request.getTargetCountry());
+        if (request.getInitialPayment() != null) client.setInitialPayment(request.getInitialPayment());
+        if (request.getInitialPaymentDate() != null) client.setInitialPaymentDate(request.getInitialPaymentDate());
+        if (request.getTotalPayment() != null) client.setTotalPayment(request.getTotalPayment());
+        if (request.getTotalPaymentDate() != null) client.setTotalPaymentDate(request.getTotalPaymentDate());
+        if (request.getPaymentStatus() != null) client.setPaymentStatus(request.getPaymentStatus());
+        if (request.getContractNumber() != null) client.setContractNumber(request.getContractNumber());
+        if (request.getStatusId() != null) {
+            ClientStatus status = clientStatusRepository.findById(request.getStatusId())
+                    .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+            client.setStatus(status);
+        }
+
+        return mapToResponse(clientRepository.save(client));
+    }
+
+    // ✅ Client o‘chirish (hard delete)
+    public void deleteClient(Long id) {
+        if (!clientRepository.existsById(id)) {
+            throw new CustomException("Client not found", HttpStatus.NOT_FOUND);
+        }
+        clientRepository.deleteById(id);
+    }
+
+
+    public void softDeleteClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
+        client.setDeleted(true);
+        clientRepository.save(client);
+    }
+
+    // ✅ Archive
+    public void archiveClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
+        client.setArchived(true);
+        clientRepository.save(client);
+    }
+
+    // ✅ Restore
+    public void restoreClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
+        client.setDeleted(false);
+        client.setArchived(false);
+        clientRepository.save(client);
+    }
+
+    // ✅ Permanent delete
+    public void permanentDeleteClient(Long id) {
+        if (!clientRepository.existsById(id)) {
+            throw new CustomException("Client not found", HttpStatus.NOT_FOUND);
+        }
+        clientRepository.deleteById(id);
+    }
+
+    // ✅ Authenticated user olish
     private ClientResponse mapToResponse(Client client) {
         return ClientResponse.builder()
                 .id(client.getId())
@@ -477,97 +572,12 @@ public class ClientService {
                                 .orElse(null)
                 )
                 .comments(client.getComments())
+                // 🟩🟩🟩 STATUSNI MAP QILISH QISMI — shu joyni qo‘sh
+                .statusId(client.getStatus() != null ? client.getStatus().getId() : null)
+                .statusName(client.getStatus() != null ? client.getStatus().getName() : null)
+                .statusColor(client.getStatus() != null ? client.getStatus().getColor() : null)
+
                 .build();
     }
-
-
-    private User getCurrentUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        if (principal instanceof User user) {
-            return user; // agar entity saqlangan bo‘lsa
-        } else if (principal instanceof org.springframework.security.core.userdetails.User springUser) {
-            // Agar Spring Security UserDetails bo‘lsa
-            return userRepository.findByEmail(springUser.getUsername())
-                    .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
-        }
-
-        throw new CustomException("Authenticated user not found", HttpStatus.UNAUTHORIZED);
-    }
-    public List<ClientResponse> getAllClients() {
-        return clientRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    // ✅ Bitta clientni olish
-    public ClientResponse getClient(Long id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
-        return mapToResponse(client);
-    }
-
-    // ✅ PATCH: faqat yuborilgan fieldlarni yangilash
-    public ClientResponse updateClient(Long id, ClientRequest request) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
-
-        if (request.getFullName() != null) client.setFullName(request.getFullName());
-        if (request.getPhone1() != null) client.setPhone1(request.getPhone1());
-        if (request.getPhone2() != null) client.setPhone2(request.getPhone2());
-        if (request.getRegion() != null) client.setRegion(request.getRegion());
-        if (request.getTargetCountry() != null) client.setTargetCountry(request.getTargetCountry());
-        if (request.getInitialPayment() != null) client.setInitialPayment(request.getInitialPayment());
-        if (request.getInitialPaymentDate() != null) client.setInitialPaymentDate(request.getInitialPaymentDate());
-        if (request.getTotalPayment() != null) client.setTotalPayment(request.getTotalPayment());
-        if (request.getTotalPaymentDate() != null) client.setTotalPaymentDate(request.getTotalPaymentDate());
-        if (request.getPaymentStatus() != null) client.setPaymentStatus(request.getPaymentStatus());
-        if (request.getContractNumber() != null) client.setContractNumber(request.getContractNumber());
-
-        return mapToResponse(clientRepository.save(client));
-    }
-
-    // ✅ Client o‘chirish (hard delete)
-    public void deleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
-            throw new CustomException("Client not found", HttpStatus.NOT_FOUND);
-        }
-        clientRepository.deleteById(id);
-    }
-
-
-    public void softDeleteClient(Long id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
-        client.setDeleted(true);
-        clientRepository.save(client);
-    }
-
-    // ✅ Archive
-    public void archiveClient(Long id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
-        client.setArchived(true);
-        clientRepository.save(client);
-    }
-
-    // ✅ Restore
-    public void restoreClient(Long id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Client not found", HttpStatus.NOT_FOUND));
-        client.setDeleted(false);
-        client.setArchived(false);
-        clientRepository.save(client);
-    }
-
-    // ✅ Permanent delete
-    public void permanentDeleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
-            throw new CustomException("Client not found", HttpStatus.NOT_FOUND);
-        }
-        clientRepository.deleteById(id);
-    }
-
-    // ✅ Authenticated user olish
 
 }

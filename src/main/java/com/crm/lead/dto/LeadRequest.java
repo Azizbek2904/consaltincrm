@@ -1,12 +1,9 @@
 package com.crm.lead.dto;
-
 import com.crm.lead.entity.MeetingStatus;
 import lombok.Builder;
 import lombok.Data;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 @Data
 @Builder
 public class LeadRequest {
@@ -19,5 +16,4 @@ public class LeadRequest {
     private Long assignedToId;  // optional
     private LocalDateTime meetingDateTime;
     private MeetingStatus meetingStatus;
-
 }

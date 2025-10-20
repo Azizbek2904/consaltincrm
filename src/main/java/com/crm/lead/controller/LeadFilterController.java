@@ -24,9 +24,9 @@ public class LeadFilterController {
 
     private final LeadFilterService filterService;
 
-    // ✅ 1. Filter qilish
+    // ✅ 1. Leadlarni filter qilish
     @GetMapping
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER') or hasAuthority('LEAD_VIEW')")
     public ResponseEntity<ApiResponse<List<Lead>>> filterLeads(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
@@ -34,13 +34,15 @@ public class LeadFilterController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
-        return ResponseEntity.ok(ApiResponse.ok("Filtered leads",
-                filterService.filterLeads(statusId, region, targetCountry, start, end)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Filtered leads",
+                filterService.filterLeads(statusId, region, targetCountry, start, end)
+        ));
     }
 
-    // ✅ 2. Filterlanganlarni o‘chirish
+    // ✅ 2. Filterlangan leadlarni o‘chirish
     @DeleteMapping
-    @PreAuthorize("hasAuthority('DELETE_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('LEAD_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteFilteredLeads(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
@@ -52,9 +54,9 @@ public class LeadFilterController {
         return ResponseEntity.ok(ApiResponse.ok("Filtered leads deleted", null));
     }
 
-    // ✅ 3. Excel export
+    // ✅ 3. Excel export (faqat ko‘rish yoki export huquqi bilan)
     @GetMapping("/export/excel")
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER') or hasAuthority('LEAD_EXPORT')")
     public ResponseEntity<InputStreamResource> exportLeadsExcel(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,
@@ -71,7 +73,7 @@ public class LeadFilterController {
 
     // ✅ 4. CSV export
     @GetMapping("/export/csv")
-    @PreAuthorize("hasAuthority('VIEW_LEADS') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','SALES_MANAGER') or hasAuthority('LEAD_EXPORT')")
     public ResponseEntity<InputStreamResource> exportLeadsCsv(
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String region,

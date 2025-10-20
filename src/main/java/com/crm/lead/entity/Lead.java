@@ -32,6 +32,8 @@ public class Lead {
     private User assignedTo;
     private boolean convertedToClient = false;
     private boolean deleted = false;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     // 🔹 BU YO‘Q EDI – qo‘shamiz
     @Column(nullable = false)

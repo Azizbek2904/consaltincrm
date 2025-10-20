@@ -3,6 +3,7 @@ package com.crm.client.controller;
 import com.crm.client.dto.*;
 import com.crm.client.entity.DocumentType;
 import com.crm.client.service.ClientService;
+import com.crm.client.service.ClientStatusService;
 import com.crm.common.exception.CustomException;
 import com.crm.common.util.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,17 +24,42 @@ import java.util.Map;
 public class ClientController {
 
     private final ClientService clientService;
+    private final ClientStatusService clientStatusService;
+    @PutMapping("/{clientId}/status/{statusId}")
+    public ResponseEntity<ApiResponse<String>> updateClientStatus(
+            @PathVariable Long clientId,
+            @PathVariable Long statusId
+    ) {
+        try {
+            clientStatusService.updateStatus(clientId, statusId);
+
+            // ⚡ data ni null emas, string qilib jo‘natamiz
+            return ResponseEntity.ok(ApiResponse.ok("Client status updated", "Updated"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.fail("Failed to update status: " + e.getMessage()));
+        }
+    }
+
+
+
+
+
+
+
 
     // ✅ 1. Client yaratish
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT') or hasAuthority('CLIENT_CREATE')")
     public ResponseEntity<ApiResponse<ClientResponse>> createClient(@Valid @RequestBody ClientRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Client created", clientService.createClient(request)));
     }
 
     // ✅ 2. Komment qo‘shish
     @PostMapping("/{id}/comments")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<ApiResponse<ClientResponse>> addComment(
             @PathVariable Long id,
             @RequestParam String comment
@@ -43,7 +69,7 @@ public class ClientController {
 
     // ✅ 3. Converted by
     @PutMapping("/{id}/converted-by/{userId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<ApiResponse<ClientResponse>> setConvertedBy(
             @PathVariable Long id,
             @PathVariable Long userId
@@ -51,7 +77,9 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("ConvertedBy set", clientService.setConvertedBy(id, userId)));
     }
 
+    // ✅ 4. Filter orqali clientlarni olish
     @GetMapping("/filters")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT','FINANCE') or hasAuthority('CLIENT_VIEW')")
     public ResponseEntity<ApiResponse<List<ClientResponse>>> getClientsByStatus(
             @RequestParam(defaultValue = "active") String type,
             @RequestParam(required = false) String region,
@@ -63,14 +91,14 @@ public class ClientController {
 
     // ✅ 5. Bitta clientni olish
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE','MANAGER_CONSULTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','FINANCE','MANAGER_CONSULTANT') or hasAuthority('CLIENT_VIEW')")
     public ResponseEntity<ApiResponse<ClientResponse>> getClient(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok("Client details", clientService.getClient(id)));
     }
 
     // ✅ 6. Clientni yangilash
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<ApiResponse<ClientResponse>> updateClient(
             @PathVariable Long id,
             @RequestBody ClientRequest request
@@ -78,9 +106,9 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("Client updated", clientService.updateClient(id, request)));
     }
 
-    // ✅ Fayl yuklash
+    // ✅ 7. Fayl yuklash
     @PostMapping("/{clientId}/files")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS') or hasAuthority('DOCUMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> uploadFile(
             @PathVariable Long clientId,
             @RequestParam("file") MultipartFile file,
@@ -91,24 +119,26 @@ public class ClientController {
                 clientService.uploadFile(clientId, file, type)
         ));
     }
+
+    // ✅ 8. Clientni Main Payment’ga o‘tkazish
     @PutMapping("/{id}/convert")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<ApiResponse<String>> convertClient(@PathVariable Long id) {
         clientService.convertToMainPayment(id);
         return ResponseEntity.ok(ApiResponse.ok("✅ Client successfully moved to Main Payment", null));
     }
 
-
-
-    // ✅ 2. MainPayment sahifasi uchun barcha convert qilingan clientlarni olish
+    // ✅ 9. Main Payment clientlarini olish
     @GetMapping("/main-payments")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('CLIENT_VIEW')")
     public ResponseEntity<ApiResponse<List<ClientResponse>>> getMainPayments() {
         List<ClientResponse> list = clientService.getMainPayments();
-        ApiResponse<List<ClientResponse>> response = ApiResponse.ok("✅ Main payments fetched successfully", list);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.ok("✅ Main payments fetched successfully", list));
     }
-    // 💬 Add payment comment
+
+    // ✅ 10. Payment comment qo‘shish
     @PostMapping("/{id}/payment-comments")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> addPaymentComment(
             @PathVariable Long id,
             @RequestParam String comment
@@ -118,8 +148,10 @@ public class ClientController {
                 clientService.addPaymentComment(id, comment)
         ));
     }
+
+    // ✅ 11. Payment comment o‘chirish
     @DeleteMapping("/{id}/payment-comments/{index}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> deletePaymentComment(
             @PathVariable Long id,
             @PathVariable int index
@@ -130,9 +162,9 @@ public class ClientController {
         ));
     }
 
-    // ✏️ Update payment comment
+    // ✅ 12. Payment comment yangilash
     @PatchMapping("/{id}/payment-comments/{index}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> updatePaymentComment(
             @PathVariable Long id,
             @PathVariable int index,
@@ -144,21 +176,20 @@ public class ClientController {
         ));
     }
 
-    // ✅ 3. Total Payment, Sana, Status, Comment’ni yangilash
+    // ✅ 13. To‘lov ma’lumotlarini yangilash
     @PatchMapping("/{id}/payment")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<String>> updatePayment(
             @PathVariable Long id,
             @RequestBody UpdatePaymentRequest request
     ) {
         clientService.updatePaymentInfo(id, request);
-        ApiResponse<String> response = ApiResponse.ok("💰 Payment info updated successfully", null);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.ok("💰 Payment info updated successfully", null));
     }
 
-
-    // ✅ Fayl yangilash
+    // ✅ 14. Fayl yangilash
     @PutMapping("/{clientId}/files/{fileId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS') or hasAuthority('DOCUMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> updateFile(
             @PathVariable Long clientId,
             @PathVariable Long fileId,
@@ -171,10 +202,9 @@ public class ClientController {
         ));
     }
 
-
-    // ✅ Fayl o‘chirish
+    // ✅ 15. Fayl o‘chirish
     @DeleteMapping("/{clientId}/files/{fileId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','DOCUMENTS') or hasAuthority('DOCUMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<Void>> deleteFile(
             @PathVariable Long clientId,
             @PathVariable Long fileId
@@ -183,8 +213,7 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("File deleted successfully", null));
     }
 
-
-    // ✅ Fayl preview
+    // ✅ 16. Fayl preview
     @GetMapping("/{clientId}/files/{fileId}/preview")
     @PreAuthorize("permitAll()")
     public ResponseEntity<?> previewFile(
@@ -200,19 +229,15 @@ public class ClientController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
                     .contentType(MediaType.parseMediaType(fileType))
                     .body(new ByteArrayResource(data));
-
         } catch (CustomException e) {
-            return ResponseEntity.status(e.getStatus())
-                    .body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Server error: " + e.getMessage()));
         }
     }
 
-
-    // ✅ Fayl download
+    // ✅ 17. Fayl download
     @GetMapping("/{clientId}/files/{fileId}/download")
     @PreAuthorize("permitAll()")
     public ResponseEntity<?> downloadFile(
@@ -228,22 +253,17 @@ public class ClientController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                     .contentType(MediaType.parseMediaType(fileType))
                     .body(new ByteArrayResource(data));
-
         } catch (CustomException e) {
-            return ResponseEntity.status(e.getStatus())
-                    .body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Server error: " + e.getMessage()));
         }
     }
 
-
-
-    // ✅ 12. Payment qo‘shish
+    // ✅ 18. Payment qo‘shish
     @PostMapping("/{id}/payments")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> addPayment(
             @PathVariable Long id,
             @RequestParam Double amount,
@@ -252,8 +272,9 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("Payment added", clientService.addPayment(id, amount, status)));
     }
 
-    // ✅ 13. Payment status yangilash
+    // ✅ 19. Payment status yangilash
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','FINANCE') or hasAuthority('PAYMENT_UPLOAD')")
     public ResponseEntity<ApiResponse<ClientResponse>> updatePaymentStatus(
             @PathVariable Long id,
             @RequestBody UpdatePaymentStatusRequest request
@@ -262,32 +283,33 @@ public class ClientController {
                 clientService.updatePaymentStatus(id, request.getPaymentStatus())));
     }
 
-    // ✅ 14. Soft delete
+    // ✅ 20. Soft delete
     @DeleteMapping("/{id}/soft")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('CLIENT_DELETE')")
     public ResponseEntity<Void> softDeleteClient(@PathVariable Long id) {
         clientService.softDeleteClient(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ✅ 15. Archive qilish
+    // ✅ 21. Archive qilish
     @PutMapping("/{id}/archive")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<Void> archiveClient(@PathVariable Long id) {
         clientService.archiveClient(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ✅ 16. Restore qilish
+    // ✅ 22. Restore qilish
     @PutMapping("/{id}/restore")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<Void> restoreClient(@PathVariable Long id) {
         clientService.restoreClient(id);
         return ResponseEntity.noContent().build();
     }
-    // ✅ Komment yangilash
+
+    // ✅ 23. Komment yangilash
     @PutMapping("/{clientId}/comments/{index}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER_CONSULTANT') or hasAuthority('CLIENT_UPDATE')")
     public ResponseEntity<ApiResponse<ClientResponse>> updateComment(
             @PathVariable Long clientId,
             @PathVariable int index,
@@ -296,9 +318,9 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("Comment updated", clientService.updateComment(clientId, index, newComment)));
     }
 
-    // ✅ 17. Permanent delete
+    // ✅ 24. Permanent delete
     @DeleteMapping("/{id}/permanent")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('CLIENT_DELETE')")
     public ResponseEntity<Void> permanentDeleteClient(@PathVariable Long id) {
         clientService.permanentDeleteClient(id);
         return ResponseEntity.noContent().build();

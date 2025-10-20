@@ -1,5 +1,6 @@
 package com.crm.lead.service;
 
+import com.crm.auth.security.CustomUserDetails;
 import com.crm.client.dto.ClientRequest;
 import com.crm.client.dto.ClientResponse;
 import com.crm.client.dto.PaymentStatus;
@@ -14,10 +15,12 @@ import com.crm.lead.reposiroty.LeadStatusRepository;
 import com.crm.reception.entity.VisitSchedule;
 import com.crm.reception.entity.VisitStatus;
 import com.crm.reception.repository.VisitScheduleRepository;
+import com.crm.user.entity.Role;
 import com.crm.user.entity.User;
 import com.crm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -48,10 +51,11 @@ public class LeadService {
     // ✅ Lead yaratish
     public LeadResponse createLead(LeadRequest request) {
         LeadStatus status = null;
-        if (request.getStatusId() != null) {
+        if (request.getStatusId() != null && request.getStatusId() > 0) {
             status = statusRepository.findById(request.getStatusId())
                     .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
         }
+
 
         User assignedTo = null;
         if (request.getAssignedToId() != null) {
@@ -78,16 +82,45 @@ public class LeadService {
         leadRepository.save(lead);
         return mapToResponse(lead);
     }
+    // 🔥 1. Hozirgi foydalanuvchini olish
+    // 🔥 1. Hozirgi foydalanuvchini olish (to‘g‘rilangan versiya)
+    private User getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof org.springframework.security.core.userdetails.User userDetails) {
+            return userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+        }
+
+        throw new CustomException("Unauthorized or invalid token", HttpStatus.UNAUTHORIZED);
+    }
 
 
-
-    // ✅ Barcha leadlarni olish
-    // ✅ Faqat faol (deleted = false) leadlarni olish
     public List<LeadResponse> getAllLeads() {
-        return leadRepository.findAllByDeletedFalse().stream()
-                .map(this::mapToResponse)
+        User currentUser = getCurrentUser();
+        Role role = currentUser.getRole();
+
+        // Super admin / admin → barcha leadlarni ko‘radi
+        if (role == Role.SUPER_ADMIN || role == Role.ADMIN) {
+            return leadRepository.findAll().stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // Sales manager → faqat o‘ziga tegishli
+        if (role == Role.SALES_MANAGER) {
+            return leadRepository.findByAssignedTo(currentUser)
+                    .stream().map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // Qolganlar → faqat bo‘sh (unassigned)
+        return leadRepository.findAllByAssignedToIsNullAndDeletedFalseAndArchivedFalse()
+                .stream().map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
+
 
 
     // ✅ Bitta leadni olish
@@ -125,12 +158,17 @@ public class LeadService {
             lead.setMeetingStatus(request.getMeetingStatus());
         }
 
-        // 🔹 status ixtiyoriy
         if (request.getStatusId() != null) {
-            LeadStatus status = statusRepository.findById(request.getStatusId())
-                    .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
-            lead.setStatus(status);
+            if (request.getStatusId() > 0) {
+                LeadStatus status = statusRepository.findById(request.getStatusId())
+                        .orElseThrow(() -> new CustomException("Status not found", HttpStatus.NOT_FOUND));
+                lead.setStatus(status);
+            } else {
+                // 0 yoki null kelsa — statusni olib tashlaymiz
+                lead.setStatus(null);
+            }
         }
+
 
         // 🔹 assignedTo ixtiyoriy
         if (request.getAssignedToId() != null) {
@@ -225,10 +263,24 @@ public class LeadService {
     }
 
     private LeadResponse mapToResponse(Lead lead) {
-        LocalDateTime nextVisit = visitScheduleRepository.findFirstByLeadIdAndStatusOrderByScheduledDateTimeAsc(
-                lead.getId(), VisitStatus.PLANNED
-        ).map(VisitSchedule::getScheduledDateTime).orElse(null);
+        // 🔹 Keyingi tashrif sanasini olish (Visit jadvalidan)
+        LocalDateTime nextVisit = visitScheduleRepository
+                .findFirstByLeadIdAndStatusOrderByScheduledDateTimeAsc(
+                        lead.getId(), VisitStatus.PLANNED
+                )
+                .map(VisitSchedule::getScheduledDateTime)
+                .orElse(null);
 
+        // 🔹 Kimga biriktirilganligini string sifatida formatlaymiz
+        String assignedToDisplay = null;
+        if (lead.getAssignedTo() != null) {
+            User u = lead.getAssignedTo();
+            assignedToDisplay = u.getFullName() != null
+                    ? u.getFullName() + " (" + u.getRole().name() + ")"
+                    : u.getEmail() + " (" + u.getRole().name() + ")";
+        }
+
+        // 🔹 LeadResponse yaratish
         return LeadResponse.builder()
                 .id(lead.getId())
                 .fullName(lead.getFullName())
@@ -236,12 +288,15 @@ public class LeadService {
                 .region(lead.getRegion())
                 .targetCountry(lead.getTargetCountry())
                 .lastContactDate(lead.getLastContactDate())
-                .statusId(lead.getStatus() != null ? lead.getStatus().getId() : null)  // ✅
-                .statusName(lead.getStatus() != null ? lead.getStatus().getName() : null) // ✅
+                .statusId(lead.getStatus() != null ? lead.getStatus().getId() : null)
+                .statusName(lead.getStatus() != null ? lead.getStatus().getName() : null)
                 .convertedToClient(lead.isConvertedToClient())
-                .nextVisitDate(nextVisit) // 🔔 qo‘shildi
-                .meetingDateTime(lead.getMeetingDateTime())    // 🆕
-                .meetingStatus(lead.getMeetingStatus())        // 🆕
+                .nextVisitDate(nextVisit)
+                .meetingDateTime(lead.getMeetingDateTime())
+                .meetingStatus(lead.getMeetingStatus())
+                .assignedTo(assignedToDisplay) // ✅ shu yerda qo‘shildi
                 .build();
     }
+
+
 }

@@ -3,6 +3,8 @@ package com.crm.client.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "client_files")
 @Getter
@@ -25,4 +27,7 @@ public class ClientFile {
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
+    @Column(name = "upload_date")
+    private LocalDate uploadDate;
+
 }

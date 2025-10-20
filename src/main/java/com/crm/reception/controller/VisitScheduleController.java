@@ -20,7 +20,7 @@ public class VisitScheduleController {
 
     // ✅ Lead uchun tashrif belgilash
     @PostMapping("/lead/{leadId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('CREATE_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_SCHEDULE_LEAD')")
     public ResponseEntity<VisitSchedule> scheduleLead(
             @PathVariable Long leadId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateTime) {
@@ -29,7 +29,7 @@ public class VisitScheduleController {
 
     // ✅ Client uchun tashrif belgilash
     @PostMapping("/client/{clientId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('CREATE_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_SCHEDULE_CLIENT')")
     public ResponseEntity<VisitSchedule> scheduleClient(
             @PathVariable Long clientId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateTime) {
@@ -38,28 +38,28 @@ public class VisitScheduleController {
 
     // ✅ Reception → keldi deb belgilash
     @PutMapping("/{id}/came")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('UPDATE_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_MARK_CAME')")
     public ResponseEntity<VisitSchedule> markCame(@PathVariable Long id) {
         return ResponseEntity.ok(visitScheduleService.markCame(id));
     }
 
     // ✅ Reception → kelmadi deb belgilash
     @PutMapping("/{id}/missed")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('UPDATE_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_MARK_MISSED')")
     public ResponseEntity<VisitSchedule> markMissed(@PathVariable Long id) {
         return ResponseEntity.ok(visitScheduleService.markMissed(id));
     }
 
     // ✅ Reception → keladigan ro‘yxat
     @GetMapping("/planned")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('VIEW_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_VIEW_PLANNED')")
     public ResponseEntity<List<VisitSchedule>> getPlanned() {
         return ResponseEntity.ok(visitScheduleService.getPlannedVisits());
     }
 
     // ✅ Sana oralig‘ida tashriflarni olish
     @GetMapping("/filter")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('VIEW_CLIENTS')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','RECEPTION') or hasAuthority('RECEPTION_VIEW_VISITS')")
     public ResponseEntity<List<VisitSchedule>> getByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {

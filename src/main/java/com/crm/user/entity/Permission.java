@@ -1,6 +1,16 @@
 package com.crm.user.entity;
 
 public enum Permission {
+    // ================= LEAD ASSIGN =================
+    LEAD_ASSIGN_CREATE,
+    LEAD_ASSIGN_VIEW,
+    LEAD_ASSIGN_DELETE,
+    LEAD_ASSIGN_REASSIGN,
+
+    // ================= LEAD ACTIVITY =================
+    LEAD_ACTIVITY_ADD,
+    LEAD_ACTIVITY_VIEW,
+    LEAD_ACTIVITY_DELETE,
 
     // ================= CLIENT =================
     CLIENT_VIEW,
@@ -31,6 +41,8 @@ public enum Permission {
     USER_DELETE,
     USER_ASSIGN_ROLES,
     USER_MANAGE_PERMISSIONS,
+    CLIENT_IMPORT,
+    CLIENT_EXPORT,
 
     // ================= DOCUMENTS =================
     DOCUMENT_UPLOAD,
@@ -54,5 +66,20 @@ public enum Permission {
     RECEPTION_MARK_CAME,
     RECEPTION_MARK_MISSED,
     RECEPTION_VIEW_PLANNED,
-    RECEPTION_VIEW_VISITS
+    RECEPTION_VIEW_VISITS,
+
+
+    //Kanban
+    // 📊 KANBAN (yangi)
+    KANBAN_BOARD_CREATE,
+    KANBAN_BOARD_VIEW,
+    KANBAN_TASK_CREATE,
+    KANBAN_TASK_UPDATE,
+    KANBAN_TASK_MOVE,
+    KANBAN_TASK_DELETE,
+    KANBAN_TASK_COMPLETE,
+    KANBAN_TASK_VIEW_USER
+
+
+
 }
