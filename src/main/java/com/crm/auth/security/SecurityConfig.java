@@ -90,7 +90,7 @@ public class SecurityConfig {
                 "http://localhost:5173",          // Vite (development)
                 "http://localhost:3030"           // React (development)
         ));
-
+       //jdowjdwiedfjeidjwidjeifjedwisjdcnvfbhfeudhwjdhwinhswd
         // ✅ So‘rov turlari
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
