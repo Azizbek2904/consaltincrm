@@ -1,4 +1,5 @@
 package com.crm.auth.security;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,21 +19,27 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtFilter jwtFilter;
     private final CustomUserDetailsService customUserDetailsService;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        http
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login",
+                        .requestMatchers(
+                                "/auth/login",
                                 "/auth/init-super-admin",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -54,7 +61,6 @@ public class SecurityConfig {
                             res.setContentType("application/json");
                             res.getWriter().write("{\"error\": \"Unauthorized\"}");
                         })
-
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -69,8 +75,7 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-   //vercel code
-    //dwidjwidjwidjwidjwid
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -80,34 +85,37 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
- //Azizbek
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
         // ✅ Frontendlarga ruxsat (Vercel + lokal)
-        config.setAllowedOrigins(List.of(
-                "https://r356453ergef.vercel.app", // Vercel frontend domeni
-                "http://localhost:5173",          // Vite (development)
-                "http://localhost:3030"           // React (development)
+        config.setAllowedOriginPatterns(List.of(
+                "https://r356453ergef.vercel.app",  // Vercel frontend domeni
+                "http://localhost:5173",            // Lokal frontend
+                "http://localhost:3030"             // Boshqa dev port
         ));
-       //jdowjdwiedfjeidjwidjeifjedwisjdcnvfbhfeudhwjdhwinhswd
+
         // ✅ So‘rov turlari
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // ✅ Headerlar
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
 
-        // ✅ Token yoki cookie yuborishga ruxsat
+        // ✅ Cookie/token yuborishga ruxsat
         config.setAllowCredentials(true);
 
-        // ✅ Ba’zi headerlarni frontendga ko‘rsatish
+        // ✅ Frontendga ko‘rsatiladigan headerlar
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
 
-        // 🔥 CORS sozlamasini butun API bo‘ylab qo‘llash
+        // ✅ Maxsus sozlama: brauzerlar uchun CORS kesh vaqtini kamaytirish (CORS testlarda yordam beradi)
+        config.setMaxAge(3600L);
+
+        // 🔥 Hammasini API bo‘ylab qo‘llash
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
         return source;
     }
-
 }
