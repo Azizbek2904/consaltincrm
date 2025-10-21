@@ -3,15 +3,18 @@ name: 🚀 Auto Deploy CRM Backend
 on:
   push:
     branches:
-      - main  # yoki master agar shu branchdan ishlatsang
+      - master   # yoki main — sening branch nomingga qarab o'zgartir
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1️⃣ Kodni olish
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Fayllarni serverga yuborish
       - name: Copy project to server
         uses: appleboy/scp-action@master
         with:
@@ -21,6 +24,7 @@ jobs:
           source: "."
           target: "/root/consaltincrm"
 
+      # 3️⃣ Serverda build + restart
       - name: Build and restart backend
         uses: appleboy/ssh-action@master
         with:
@@ -29,6 +33,40 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /root/consaltincrm
-            ./mvnw clean package -DskipTests || mvn clean package -DskipTests
-            sudo systemctl restart crm
+            echo "🧱 Building backend..."
+            if [ -f "./mvnw" ]; then
+              ./mvnw clean package -DskipTests
+            else
+              mvn clean package -DskipTests
+            fi
+
+            echo "🔁 Checking CRM service..."
+            if systemctl list-units --full -all | grep -Fq "crm.service"; then
+              echo "🔄 Restarting existing CRM service..."
+              sudo systemctl restart crm
+            else
+              echo "⚙️ Creating new CRM service..."
+              sudo bash -c 'cat > /etc/systemd/system/crm.service <<EOF
+[Unit]
+Description=Consulting CRM Backend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/consaltincrm
+ExecStart=/usr/bin/java -jar /root/consaltincrm/target/consulting-crm-0.0.1-SNAPSHOT.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=SERVER_PORT=8080
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+              sudo systemctl daemon-reload
+              sudo systemctl enable crm
+              sudo systemctl start crm
+            fi
+
             echo "✅ Deployment completed successfully!"
