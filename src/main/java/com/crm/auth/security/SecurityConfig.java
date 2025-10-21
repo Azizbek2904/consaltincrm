@@ -69,7 +69,7 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-
+   //vercel code
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
