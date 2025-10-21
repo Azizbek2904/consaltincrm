@@ -46,7 +46,7 @@ jobs:
               sudo systemctl restart crm
             else
               echo "⚙️ Creating new CRM service..."
-              sudo bash -c 'cat > /etc/systemd/system/crm.service <<EOF
+              sudo bash -c "cat > /etc/systemd/system/crm.service <<'EOF'
 [Unit]
 Description=Consulting CRM Backend
 After=network.target
@@ -63,10 +63,8 @@ Environment=SERVER_PORT=8080
 
 [Install]
 WantedBy=multi-user.target
-EOF'
+EOF"
               sudo systemctl daemon-reload
               sudo systemctl enable crm
               sudo systemctl start crm
             fi
-
-            echo "✅ Deployment completed successfully!"
