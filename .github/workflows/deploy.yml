@@ -3,18 +3,15 @@ name: 🚀 Auto Deploy CRM Backend
 on:
   push:
     branches:
-      - main   # faqat 'main' branch push qilinganda ishga tushadi
+      - main  # yoki master agar shu branchdan ishlatsang
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Kodni olish
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Fayllarni serverga yuborish
       - name: Copy project to server
         uses: appleboy/scp-action@master
         with:
@@ -22,9 +19,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "."
-          target: "/root/consultingcrm"
+          target: "/root/consaltincrm"
 
-      # 3️⃣ Serverda build + restart
       - name: Build and restart backend
         uses: appleboy/ssh-action@master
         with:
@@ -32,43 +28,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /root/consultingcrm
-
-            # Build JAR (mvn wrapper bo‘lsa shuni ishlatadi)
-            if [ -f "./mvnw" ]; then
-              ./mvnw clean package -DskipTests
-            else
-              mvn clean package -DskipTests
-            fi
-
-            # Systemd orqali avtomatik servis
-            if systemctl list-units --full -all | grep -Fq "crm.service"; then
-              echo "🔄 Restarting existing CRM service..."
-              sudo systemctl restart crm
-            else
-              echo "⚙️ Creating new CRM service..."
-              cat <<EOF | sudo tee /etc/systemd/system/crm.service
-              [Unit]
-              Description=Consulting CRM Backend
-              After=network.target
-
-              [Service]
-              User=root
-              WorkingDirectory=/root/consultingcrm
-              ExecStart=/usr/bin/java -jar /root/consultingcrm/target/consultingcrm-0.0.1-SNAPSHOT.jar
-              SuccessExitStatus=143
-              Restart=always
-              RestartSec=5
-              Environment=SPRING_PROFILES_ACTIVE=prod
-              Environment=SERVER_PORT=8080
-
-              [Install]
-              WantedBy=multi-user.target
-EOF
-
-              sudo systemctl daemon-reload
-              sudo systemctl enable crm
-              sudo systemctl start crm
-            fi
-
+            cd /root/consaltincrm
+            ./mvnw clean package -DskipTests || mvn clean package -DskipTests
+            sudo systemctl restart crm
             echo "✅ Deployment completed successfully!"
