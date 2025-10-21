@@ -70,6 +70,7 @@ public class SecurityConfig {
         return provider;
     }
    //vercel code
+    //dwidjwidjwidjwidjwid
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
