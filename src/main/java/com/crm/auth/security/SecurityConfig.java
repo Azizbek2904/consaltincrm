@@ -86,7 +86,7 @@ public class SecurityConfig {
 
         // ✅ Frontendlarga ruxsat (Vercel + lokal)
         config.setAllowedOrigins(List.of(
-                "https://bestcrm-pi.vercel.app",  // Vercel frontend domeni
+                "https://r356453ergef.vercel.app/", // Vercel frontend domeni
                 "http://localhost:5173",          // Vite (development)
                 "http://localhost:3030"           // React (development)
         ));
