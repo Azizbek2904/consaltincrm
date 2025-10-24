@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
 
 @Configuration
@@ -32,11 +33,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
+                // 🔒 CSRF o‘chiriladi (token asosida ishlaymiz)
                 .csrf(csrf -> csrf.disable())
+
+                // 🌐 CORS sozlamalari
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // ⚙️ Sessiyasiz (JWT ishlatilgani uchun)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // 🧱 Ruxsatlar
                 .authorizeHttpRequests(auth -> auth
+                        // 🔓 Ochiq endpointlar
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/init-super-admin",
@@ -46,9 +56,30 @@ public class SecurityConfig {
                                 "/clients/*/files/*/download",
                                 "/api/documents"
                         ).permitAll()
+
+                        // 🔒 Admin va Super Admin uchun
+                        .requestMatchers(
+                                "/api/users/**",
+                                "/users/**",
+                                "/api/employees/**"
+                        ).hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+
+                        // 🧩 Oddiy foydalanuvchi, admin va super admin uchun
+                        .requestMatchers(
+                                "/api/clients/**",
+                                "/api/leads/**",
+                                "/api/tasks/**",
+                                "/api/dashboard/**"
+                        ).hasAnyAuthority("USER", "ADMIN", "SUPER_ADMIN")
+
+                        // 🟢 OPTIONS (CORS preflight) uchun ruxsat
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 🧱 Qolgan barcha so‘rovlar uchun — autentifikatsiya talab qilinadi
                         .anyRequest().authenticated()
                 )
+
+                // ⚠️ Exception handling (aniq JSON xabar bilan)
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler((req, res, exc) -> {
                             res.setStatus(HttpStatus.FORBIDDEN.value());
@@ -61,12 +92,15 @@ public class SecurityConfig {
                             res.getWriter().write("{\"error\": \"Unauthorized\"}");
                         })
                 )
+
+                // 🔐 Custom AuthenticationProvider va JWT filter ulanishi
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // 🧩 Authentication provider (UserDetailsService + BCrypt)
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -75,29 +109,31 @@ public class SecurityConfig {
         return provider;
     }
 
+    // 🔑 BCrypt encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // 🧠 AuthenticationManager (login endpoint uchun)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // ✅ YANGI, TO‘G‘RI CORS KONFIGURATSIYA
+    // 🌍 To‘g‘ri CORS konfiguratsiya (Vercel + Lokal)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ Faqat Vercel domeni va lokalga ruxsat
         config.setAllowedOrigins(List.of(
-                "https://r356453ergef.vercel.app",
-                "http://localhost:5173",
+                "https://r356453ergef.vercel.app", // Vercel frontend
+                "http://localhost:5173",           // lokal dev
                 "http://localhost:3030"
         ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
         config.setAllowCredentials(true);
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         config.setMaxAge(3600L);
@@ -106,5 +142,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 }
