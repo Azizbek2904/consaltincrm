@@ -19,7 +19,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.List;
 
 @Configuration
@@ -86,36 +85,24 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    // ✅ YANGI, TO‘G‘RI CORS KONFIGURATSIYA
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // ✅ Frontendlarga ruxsat (Vercel + lokal)
-        config.setAllowedOriginPatterns(List.of(
-                "https://r356453ergef.vercel.app",  // Vercel frontend domeni
-                "http://localhost:5173",            // Lokal frontend
-                "http://localhost:3030"             // Boshqa dev port
+        // 🔹 Faqat aniq ruxsat berilgan manzillar
+        config.setAllowedOrigins(List.of(
+                "https://r356453ergef.vercel.app", // Vercel domening
+                "http://localhost:5173",           // Lokal dev
+                "http://localhost:3030"
         ));
-
-        // ✅ So‘rov turlari
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        // ✅ Headerlar
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-
-        // ✅ Cookie/token yuborishga ruxsat
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-
-        // ✅ Frontendga ko‘rsatiladigan headerlar
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
-
-        // ✅ Maxsus sozlama: brauzerlar uchun CORS kesh vaqtini kamaytirish (CORS testlarda yordam beradi)
         config.setMaxAge(3600L);
 
-        // 🔥 Hammasini API bo‘ylab qo‘llash
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 }
