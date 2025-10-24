@@ -89,10 +89,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // 🔹 Faqat aniq ruxsat berilgan manzillar
+
+        // ✅ Faqat Vercel domeni va lokalga ruxsat
         config.setAllowedOrigins(List.of(
-                "https://r356453ergef.vercel.app", // Vercel domening
-                "http://localhost:5173",           // Lokal dev
+                "https://r356453ergef.vercel.app",
+                "http://localhost:5173",
                 "http://localhost:3030"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -105,4 +106,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }
